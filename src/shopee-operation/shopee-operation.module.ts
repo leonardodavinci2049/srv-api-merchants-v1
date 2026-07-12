@@ -1,14 +1,13 @@
 import { Module } from '@nestjs/common';
 import { FunctionsService } from 'src/core/utils/forServices/functions.service';
 import { DatabaseModule } from 'src/database/database.module';
-import { PromolinksModule } from 'src/promolinks/promolinks.module';
-import { PromolinksService } from 'src/promolinks/promolinks.service';
+import { DbOperationModule } from 'src/db.operation/db.operation.module';
 import { ShopeeOperationController } from './shopee-operation.controller';
 import { ShopeeOperationService } from './shopee-operation.service';
 
 @Module({
-  imports: [DatabaseModule, PromolinksModule],
+  imports: [DatabaseModule, DbOperationModule],
   controllers: [ShopeeOperationController],
-  providers: [ShopeeOperationService, FunctionsService, PromolinksService],
+  providers: [ShopeeOperationService, FunctionsService],
 })
 export class ShopeeOperationModule {}

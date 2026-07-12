@@ -13,8 +13,8 @@ import {
   ProductOfferV2Response,
 } from 'src/core/interfaces/shopee-product-offer.interface';
 import { FunctionsService } from 'src/core/utils/forServices/functions.service';
-import { LinkGenerationCreateV2Dto } from 'src/promolinks/dto/link-generation-create-v2.dto';
-import { PromolinksService } from 'src/promolinks/promolinks.service';
+import { DbOperationService } from 'src/db.operation/db.operation.service';
+import { LinkGenerationCreateV2Dto } from 'src/db.operation/dto/link-generation-create-v2.dto';
 import { GenerateAffiliateLinkResponse } from './dto/generate-affiliate-link-response.dto';
 import { processAffiliateLink } from './utils/generateAffiliateLink/shopee-affiliate-link.util';
 import { processProductOffers } from './utils/getProductOffers/shopee-product-offer-processor.util';
@@ -27,7 +27,7 @@ export class ShopeeOperationService {
 
   constructor(
     private readonly functionsService: FunctionsService,
-    private readonly promolinksService: PromolinksService,
+    private readonly dbOperationService: DbOperationService,
   ) {}
 
   /**
@@ -198,7 +198,7 @@ export class ShopeeOperationService {
       };
 
       const dbResult =
-        await this.promolinksService.taskLinkGenerationCreateV2(
+        await this.dbOperationService.taskLinkGenerationCreateV2(
           linkGenerationDto,
         );
 
