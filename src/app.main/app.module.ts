@@ -5,7 +5,6 @@ import { APP_GUARD } from '@nestjs/core';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { DbOperationModule } from 'src/db.operation/db.operation.module';
-import { PromolinksModule } from 'src/promolinks/promolinks.module';
 import { ShopeeOperationModule } from 'src/shopee-operation/shopee-operation.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -28,7 +27,6 @@ import { AppService } from './app.service';
       },
     ]),
     ShopeeOperationModule,
-    PromolinksModule,
   ],
   controllers: [AppController],
   providers: [
