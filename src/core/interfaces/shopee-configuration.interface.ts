@@ -6,8 +6,6 @@ import { BotConfiguration } from './bot-configuration.interface';
 export interface ShopeeConfiguration {
   credential: string;
   secretKey: string;
-  affiliateEndpoint: string;
-  affiliateTimeout: string;
   affiliateSubids: string;
 }
 
@@ -37,19 +35,12 @@ function extractShopeeConfig(botConfig: BotConfiguration): ShopeeConfiguration {
   return {
     credential: botConfig.shopeeCredential,
     secretKey: botConfig.shopeeSecretKey,
-    affiliateEndpoint: botConfig.shopeeAffiliateEndpoint,
-    affiliateTimeout: botConfig.shopeeAffiliateTimeout,
     affiliateSubids: botConfig.shopeeAffiliateSubids,
   };
 }
 
 function validateShopeeConfig(config: ShopeeConfiguration): boolean {
-  return !!(
-    config.credential &&
-    config.secretKey &&
-    config.affiliateEndpoint &&
-    config.affiliateSubids
-  );
+  return !!(config.credential && config.secretKey && config.affiliateSubids);
 }
 
 function getValidationErrorMessage(config: ShopeeConfiguration): string {
@@ -57,7 +48,6 @@ function getValidationErrorMessage(config: ShopeeConfiguration): string {
 
   if (!config.credential) missing.push('credential');
   if (!config.secretKey) missing.push('secretKey');
-  if (!config.affiliateEndpoint) missing.push('affiliateEndpoint');
   if (!config.affiliateSubids) missing.push('affiliateSubids');
 
   if (missing.length > 0) {

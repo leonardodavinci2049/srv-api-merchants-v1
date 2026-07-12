@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsString, IsUrl } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsPositive,
+  IsString,
+  IsUrl,
+} from 'class-validator';
 
 export class GenerateAffiliateLinkDto {
   @IsUrl({}, { message: 'A URL fornecida deve ser uma URL válida.' })
@@ -12,16 +19,10 @@ export class GenerateAffiliateLinkDto {
   @IsNotEmpty()
   secretKey: string;
 
-  @IsString()
-  @IsNotEmpty()
-  affiliateEndpoint: string;
-
-  @IsString()
-  @IsNotEmpty()
-  affiliateSubids: string;
-
-  @IsString()
-  affiliateTimeout?: string;
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
+  clientId: number;
 }
 
 /*Sample JSON for testing in body endpoint:
@@ -29,8 +30,6 @@ export class GenerateAffiliateLinkDto {
  "originUrl": "https://shopee.com.br/Liquidificador-Shake-2-Copos-800ml-300w-220v-GO014-i.389315825.22698012388",
  "credential": "your_credential_here",
  "secretKey": "your_secret_key_here",
- "affiliateEndpoint": "https://affiliate.shopee.com.br/api/v1/links",
- "affiliateSubids": "subid1,subid2,subid3",
- "affiliateTimeout": "5000"
+ "clientId": 1
 }
 */

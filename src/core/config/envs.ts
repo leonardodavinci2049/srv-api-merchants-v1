@@ -56,6 +56,13 @@ const envsSchema = z.object({
   DB_MYSQL_USER: z.string().min(1),
   DB_MYSQL_PASSWORD: z.string().min(1),
   DB_MYSQL_DATABASE: z.string().min(1),
+  SHOPEE_API_ENDPOINT: z.url(),
+  SHOPEE_API_TIMEOUT_MS: z.coerce.number().int().positive(),
+  SHOPEE_AFFILIATE_SUBIDS: z.string().min(1),
+  SHOPEE_APP_ID: z.coerce.number().int().positive(),
+  SHOPEE_FLAG_CLICK: z.coerce.number().int().min(0),
+  SHOPEE_CURRENCY: z.string().min(1),
+  SHOPEE_LOCATION: z.string().min(1),
 });
 
 const envData = {
@@ -89,4 +96,11 @@ export const envs = {
   DB_MYSQL_USER: envVars.DB_MYSQL_USER,
   DB_MYSQL_PASSWORD: envVars.DB_MYSQL_PASSWORD,
   DB_MYSQL_DATABASE: envVars.DB_MYSQL_DATABASE,
+  SHOPEE_API_ENDPOINT: envVars.SHOPEE_API_ENDPOINT,
+  SHOPEE_API_TIMEOUT_MS: envVars.SHOPEE_API_TIMEOUT_MS,
+  SHOPEE_AFFILIATE_SUBIDS: envVars.SHOPEE_AFFILIATE_SUBIDS,
+  SHOPEE_APP_ID: envVars.SHOPEE_APP_ID,
+  SHOPEE_FLAG_CLICK: envVars.SHOPEE_FLAG_CLICK,
+  SHOPEE_CURRENCY: envVars.SHOPEE_CURRENCY,
+  SHOPEE_LOCATION: envVars.SHOPEE_LOCATION,
 };

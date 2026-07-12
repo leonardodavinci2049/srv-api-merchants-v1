@@ -20,18 +20,6 @@ export class GetShopeeOffersDto {
   @IsNotEmpty({ message: 'SecretKey é obrigatório' })
   secretKey: string;
 
-  @IsString()
-  @IsNotEmpty({ message: 'AffiliateEndpoint é obrigatório' })
-  affiliateEndpoint: string;
-
-  @IsOptional()
-  @IsString()
-  affiliateSubids?: string;
-
-  @IsOptional()
-  @IsString()
-  affiliateTimeout?: string;
-
   // Campos opcionais de busca
   @IsOptional()
   @IsString()
@@ -62,9 +50,6 @@ export class GetShopeeOffersDto {
 {
   "credential": "your_credential_here",
   "secretKey": "your_secret_key_here",
-  "affiliateEndpoint": "https://open-api.affiliate.shopee.com.br/graphql",
-  "affiliateSubids": "subid1,subid2,subid3",
-  "affiliateTimeout": "5000",
   "keyword": "clothes",
   "sortType": 1,
   "page": 1,
