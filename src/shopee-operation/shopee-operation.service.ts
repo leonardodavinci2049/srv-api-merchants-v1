@@ -1,4 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
+import { envs } from 'src/core/config';
 import {
   ShopeeConfiguration,
   ShopeeConfigurationExtractor,
@@ -15,11 +22,9 @@ import {
 import { FunctionsService } from 'src/core/utils/forServices/functions.service';
 import { DbOperationService } from 'src/db.operation/db.operation.service';
 import { LinkGenerationCreateV2Dto } from 'src/db.operation/dto/link-generation-create-v2.dto';
+import { ShopeeApiService } from 'src/shopee-api/shopee-api.service';
 import { GenerateAffiliateLinkResponse } from './dto/generate-affiliate-link-response.dto';
-import { processAffiliateLink } from './utils/generateAffiliateLink/shopee-affiliate-link.util';
-import { processProductOffers } from './utils/getProductOffers/shopee-product-offer-processor.util';
 import { validateProductOfferParams } from './utils/getProductOffers/shopee-product-offer-validator.util';
-import { processShopeeOffers } from './utils/getShopeeOffers/shopee-offer-processor.util';
 
 @Injectable()
 export class ShopeeOperationService {
@@ -28,6 +33,7 @@ export class ShopeeOperationService {
   constructor(
     private readonly functionsService: FunctionsService,
     private readonly dbOperationService: DbOperationService,
+    private readonly shopeeApiService: ShopeeApiService,
   ) {}
 
   /**
@@ -70,56 +76,49 @@ export class ShopeeOperationService {
   async generateAffiliateLink(
     originUrl: string,
     shopeeConfig: ShopeeConfiguration,
+    clientId: number,
   ): Promise<GenerateAffiliateLinkResponse> {
     // 1. Validar configuração da Shopee
     if (!ShopeeConfigurationExtractor.validateShopeeConfig(shopeeConfig)) {
       const errorMsg =
         ShopeeConfigurationExtractor.getValidationErrorMessage(shopeeConfig);
       this.logger.error(errorMsg);
-      return {
-        success: false,
-        error: 'Configuração inválida',
-        message: errorMsg,
-      };
+      throw new BadRequestException(errorMsg);
     }
 
     // 2. Validar URL de produto Shopee
     if (!this.functionsService.isValidShopeeProductUrl(originUrl)) {
       this.logger.warn(`URL inválida recebida: ${originUrl}`);
-      return {
-        success: false,
-        error: 'URL inválida',
-        message: 'A URL fornecida não é uma URL válida de produto da Shopee',
-      };
+      throw new BadRequestException(
+        'A URL fornecida não é uma URL válida de produto da Shopee',
+      );
     }
 
     // 3. Resolver URL encurtada (se necessário) antes de gerar o link
     let resolvedUrl = originUrl;
     if (this.functionsService.isShortShopeeUrl(originUrl)) {
       const fullUrl = await this.functionsService.resolveShortUrl(originUrl);
-      if (fullUrl) {
-        resolvedUrl = fullUrl;
-      } else {
-        this.logger.warn(
+      if (!fullUrl) {
+        throw new BadGatewayException(
           `Não foi possível resolver a URL encurtada: ${originUrl}`,
         );
       }
+      resolvedUrl = fullUrl;
     }
 
     // 4. Gerar link de afiliado (usando a URL resolvida)
     let affiliateLink: string;
     try {
-      affiliateLink = await processAffiliateLink(resolvedUrl, shopeeConfig);
+      affiliateLink = await this.shopeeApiService.generateShortLink(
+        resolvedUrl,
+        shopeeConfig,
+      );
     } catch (error) {
       this.logger.error(
         'Erro ao gerar link de afiliado:',
         error instanceof Error ? error.message : error,
       );
-      return {
-        success: false,
-        error: 'Erro ao gerar link',
-        message: error instanceof Error ? error.message : 'Erro desconhecido',
-      };
+      throw error;
     }
 
     // 5. Extrair ID do produto da URL resolvida
@@ -128,13 +127,9 @@ export class ShopeeOperationService {
       this.logger.warn(
         `Não foi possível extrair ID do produto: ${resolvedUrl}`,
       );
-      // Retorna sucesso com link mas sem informações adicionais
-      return {
-        success: true,
-        affiliateLink,
-        message:
-          'Link gerado, porém não foi possível extrair informações do produto',
-      };
+      throw new BadRequestException(
+        'Não foi possível extrair informações do produto da URL',
+      );
     }
 
     // 6. Carregar informações do produto usando a API da Shopee
@@ -157,8 +152,14 @@ export class ShopeeOperationService {
       ) {
         productDetails = productOfferResponse.data.products[0];
       }
+      if (!productDetails) {
+        throw new BadGatewayException(
+          'A Shopee não retornou informações para o produto',
+        );
+      }
     } catch (error) {
-      this.logger.warn('Erro ao buscar informações do produto:', error);
+      this.logger.error('Erro ao buscar informações do produto:', error);
+      throw error;
     }
 
     // 7. Gravar informações no banco de dados
@@ -166,11 +167,11 @@ export class ShopeeOperationService {
     try {
       const linkGenerationDto: LinkGenerationCreateV2Dto = {
         pe_uuid: '',
-        pe_client_id: 1,
-        pe_app_id: 1,
+        pe_client_id: clientId,
+        pe_app_id: envs.SHOPEE_APP_ID,
         pe_link_destination: originUrl,
         pe_affiliate_link: affiliateLink,
-        pe_flag_click: 1,
+        pe_flag_click: envs.SHOPEE_FLAG_CLICK,
         pe_item_id: this.safeParseInt(
           productDetails?.itemId || productInfo.productId,
         ),
@@ -186,7 +187,7 @@ export class ShopeeOperationService {
         pe_image_url: productDetails?.imageUrl || '',
         pe_product_link: productDetails?.productLink || originUrl,
         pe_offer_link: productDetails?.offerLink || affiliateLink,
-        pe_currency: productDetails?.currency || 'BRL',
+        pe_currency: productDetails.currency || envs.SHOPEE_CURRENCY,
         pe_discount_percent: productDetails?.discountPercent || 0,
         pe_original_price: this.safeParseFloat(productDetails?.originalPrice),
         pe_category: productDetails?.category || '',
@@ -194,7 +195,7 @@ export class ShopeeOperationService {
         pe_brand_name: productDetails?.brandName || '',
         pe_is_official: productDetails?.isOfficial ? 1 : 0,
         pe_free_shipping: productDetails?.freeShipping ? 1 : 0,
-        pe_location: productDetails?.location || 'Brasil',
+        pe_location: productDetails.location || envs.SHOPEE_LOCATION,
       };
 
       const dbResult =
@@ -210,9 +211,16 @@ export class ShopeeOperationService {
               : dbResult.recordId,
           message: dbResult.message,
         };
+      } else {
+        throw new InternalServerErrorException(
+          dbResult.message || 'Falha ao persistir o link de afiliado',
+        );
       }
     } catch (error) {
       this.logger.error('Erro ao gravar no banco de dados:', error);
+      throw error instanceof InternalServerErrorException
+        ? error
+        : new InternalServerErrorException('Falha ao persistir o link');
     }
 
     // 8. Retornar resposta completa
@@ -238,24 +246,16 @@ export class ShopeeOperationService {
       const errorMsg =
         ShopeeConfigurationExtractor.getValidationErrorMessage(shopeeConfig);
       this.logger.error(errorMsg);
-      return {
-        success: false,
-        error: 'Configuração inválida',
-        message: errorMsg,
-      };
+      throw new BadRequestException(errorMsg);
     }
 
     // Validar parâmetros de busca
     const validationError = validateProductOfferParams(params);
     if (validationError) {
-      return {
-        success: false,
-        error: 'Parâmetros inválidos',
-        message: validationError,
-      };
+      throw new BadRequestException(validationError);
     }
 
-    return processProductOffers(params, shopeeConfig);
+    return this.shopeeApiService.getProductOffers(params, shopeeConfig);
   }
 
   /**
@@ -272,13 +272,9 @@ export class ShopeeOperationService {
       const errorMsg =
         ShopeeConfigurationExtractor.getValidationErrorMessage(shopeeConfig);
       this.logger.error(errorMsg);
-      return {
-        success: false,
-        error: 'Configuração inválida',
-        message: errorMsg,
-      };
+      throw new BadRequestException(errorMsg);
     }
 
-    return processShopeeOffers(params, shopeeConfig);
+    return this.shopeeApiService.getShopeeOffers(params, shopeeConfig);
   }
 }

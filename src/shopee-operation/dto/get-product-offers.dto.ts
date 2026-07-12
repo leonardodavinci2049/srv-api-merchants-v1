@@ -25,14 +25,6 @@ export class GetProductOffersDto {
   @IsNotEmpty({ message: 'SecretKey é obrigatório' })
   secretKey: string;
 
-  @IsString()
-  @IsNotEmpty({ message: 'AffiliateEndpoint é obrigatório' })
-  affiliateEndpoint: string;
-
-  @IsOptional()
-  @IsString()
-  affiliateSubids?: string;
-
   // Campos opcionais de busca (pelo menos um deve ser fornecido)
   @IsOptional()
   @IsString()
