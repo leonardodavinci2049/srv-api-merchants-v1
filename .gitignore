@@ -54,3 +54,18 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# others
+ecosystem.config.js
+.well-known
+/upload
+/database-docs
+
+.agents
+/schemas
+
+# project generated files
+/scripts
+/docs
+API-documentation/
+database-objects/
