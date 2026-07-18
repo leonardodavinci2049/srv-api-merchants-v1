@@ -3,6 +3,15 @@ import { BadGatewayException, Injectable } from '@nestjs/common';
 import axios, { AxiosRequestConfig } from 'axios';
 import { ShopeeConfiguration } from 'src/core/interfaces/shopee-configuration.interface';
 import {
+  FeedMode,
+  GetItemFeedDataQueryParams,
+  GetItemFeedDataResponse,
+  ListItemFeedsQueryParams,
+  ListItemFeedsResponse,
+  ShopeeGetItemFeedDataApiResponse,
+  ShopeeListItemFeedsApiResponse,
+} from 'src/core/interfaces/shopee-item-feed.interface';
+import {
   ShopeeOfferApiResponse,
   ShopeeOfferQueryParams,
   ShopeeOfferV2Response,
@@ -13,6 +22,10 @@ import {
   ShopeeProductOfferApiResponse,
 } from 'src/core/interfaces/shopee-product-offer.interface';
 import { extractShopeeErrorMessage } from './graphql/shopee-error.util';
+import {
+  formatGetItemFeedDataResponse,
+  formatListItemFeedsResponse,
+} from './mappers/item-feed.mapper';
 import { formatProductOffersResponse } from './mappers/product-offer-v2.mapper';
 import { formatShopeeOffersResponse } from './mappers/shopee-offer-v2.mapper';
 
@@ -96,6 +109,38 @@ export class ShopeeApiService {
     return result;
   }
 
+  async listItemFeeds(
+    params: ListItemFeedsQueryParams,
+    config: ShopeeConfiguration,
+  ): Promise<ListItemFeedsResponse> {
+    const response = await this.request<ShopeeListItemFeedsApiResponse>(
+      this.buildListItemFeedsQuery(params),
+      config,
+      'listar feeds de produtos',
+    );
+    const result = formatListItemFeedsResponse(response, params);
+    if (!result.success) {
+      throw new BadGatewayException(result.message || result.error);
+    }
+    return result;
+  }
+
+  async getItemFeedData(
+    params: GetItemFeedDataQueryParams,
+    config: ShopeeConfiguration,
+  ): Promise<GetItemFeedDataResponse> {
+    const response = await this.request<ShopeeGetItemFeedDataApiResponse>(
+      this.buildGetItemFeedDataQuery(params),
+      config,
+      'buscar dados do feed de produtos',
+    );
+    const result = formatGetItemFeedDataResponse(response, params);
+    if (!result.success) {
+      throw new BadGatewayException(result.message || result.error);
+    }
+    return result;
+  }
+
   private async request<T>(
     query: string,
     config: ShopeeConfiguration,
@@ -155,6 +200,29 @@ export class ShopeeApiService {
     } }`;
   }
 
+  private buildListItemFeedsQuery(params: ListItemFeedsQueryParams): string {
+    // feedMode e um enum GraphQL: deve ser serializado sem aspas, diferente
+    // dos buildQueryParams genericos que tratam strings com JSON.stringify.
+    const args: string[] = [];
+    const feedMode = normalizeFeedMode(params.feedMode);
+    if (feedMode) {
+      args.push(`feedMode: ${feedMode}`);
+    }
+    return `query { listItemFeeds(${args.join(', ')}) {
+      feeds { datafeedId datafeedName referenceId description totalCount date feedMode }
+    } }`;
+  }
+
+  private buildGetItemFeedDataQuery(
+    params: GetItemFeedDataQueryParams,
+  ): string {
+    const queryParams = this.buildQueryParams(params);
+    return `query { getItemFeedData(${queryParams}) {
+      rows { columns updateType }
+      pageInfo { offset limit totalCount hasMore }
+    } }`;
+  }
+
   private buildQueryParams(params: object): string {
     return Object.entries(params)
       .filter(([, value]) => value !== undefined && value !== '')
@@ -164,4 +232,15 @@ export class ShopeeApiService {
       )
       .join(', ');
   }
+}
+
+/**
+ * Garante que feedMode seja um valor valido do enum GraphQL antes de
+ * serializa-lo sem aspas. Defende chamadas diretas ao adapter sem a
+ * validacao do DTO.
+ */
+function normalizeFeedMode(value: unknown): FeedMode | undefined {
+  return value === FeedMode.FULL || value === FeedMode.DELTA
+    ? (value as FeedMode)
+    : undefined;
 }
