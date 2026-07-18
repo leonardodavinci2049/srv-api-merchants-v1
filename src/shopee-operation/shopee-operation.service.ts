@@ -73,18 +73,8 @@ export class ShopeeOperationService {
     dto: GenerateAffiliateLinkDto,
   ): Promise<GenerateAffiliateLinkResponse> {
     const config = await this.configResolver.resolve(dto.configId);
-    return this.generateAffiliateLinkWithConfig(dto.originUrl, config);
-  }
+    const { originUrl } = dto;
 
-  /**
-   * Implementacao interna que reutiliza a configuracao já resolvida, evitando
-   * um segundo lookup no banco quando o enlace de geracao de link precisa
-   * enriquecer o produto via getProductOffersInternal.
-   */
-  private async generateAffiliateLinkWithConfig(
-    originUrl: string,
-    config: ResolvedShopeeConfiguration,
-  ): Promise<GenerateAffiliateLinkResponse> {
     if (!this.functionsService.isValidShopeeProductUrl(originUrl)) {
       this.logger.warn(`URL inválida recebida: ${originUrl}`);
       throw new BadRequestException(
@@ -242,36 +232,6 @@ export class ShopeeOperationService {
   }
 
   /**
-   * Busca ofertas da Shopee usando a configuracao resolvida pelo configId.
-   */
-  async getShopeeOffers(
-    dto: GetShopeeOffersDto,
-  ): Promise<ShopeeOfferV2Response> {
-    const config = await this.configResolver.resolve(dto.configId);
-    const params = this.buildShopeeOfferParams(dto, config);
-    return this.shopeeApiService.getShopeeOffers(params, config);
-  }
-
-  /**
-   * Executa a chamada ao adapter depois que a configuracao já está resolvida.
-   * Usado pelo fluxo público e pelo enrichment interno de generateAffiliateLink.
-   */
-  private async getProductOffersInternal(
-    params: ProductOfferV2QueryParams,
-    config: ResolvedShopeeConfiguration,
-  ): Promise<ProductOfferV2Response> {
-    const validationError = validateProductOfferParams(params);
-    if (validationError) {
-      throw new BadRequestException(validationError);
-    }
-
-    return this.shopeeApiService.getProductOffers(params, config, {
-      currencyFallback: config.currency,
-      locationFallback: config.location,
-    });
-  }
-
-  /**
    * Monta os parametros de ProductOfferV2 aplicando request > default do
    * registro selecionado. Os bounds (1..50) já sao garantidos pelo DTO.
    */
@@ -293,6 +253,42 @@ export class ShopeeOperationService {
     };
   }
 
+
+
+  /**
+   * Executa a chamada ao adapter depois que a configuracao já está resolvida.
+   * Usado pelo fluxo público e pelo enrichment interno de generateAffiliateLink.
+   */
+  private async getProductOffersInternal(
+    params: ProductOfferV2QueryParams,
+    config: ResolvedShopeeConfiguration,
+  ): Promise<ProductOfferV2Response> {
+    const validationError = validateProductOfferParams(params);
+    if (validationError) {
+      throw new BadRequestException(validationError);
+    }
+
+    return this.shopeeApiService.getProductOffers(params, config, {
+      currencyFallback: config.currency,
+      locationFallback: config.location,
+    });
+  }
+
+
+
+
+  /**
+   * Busca ofertas da Shopee usando a configuracao resolvida pelo configId.
+   */
+  async getShopeeOffers(
+    dto: GetShopeeOffersDto,
+  ): Promise<ShopeeOfferV2Response> {
+    const config = await this.configResolver.resolve(dto.configId);
+    const params = this.buildShopeeOfferParams(dto, config);
+    return this.shopeeApiService.getShopeeOffers(params, config);
+  }
+
+
   /**
    * Monta os parametros de shopeeOfferV2 aplicando request > default do
    * registro selecionado. Os bounds (1..50) já sao garantidos pelo DTO.
@@ -308,4 +304,8 @@ export class ShopeeOperationService {
       limit: dto.limit ?? config.defaultLimit,
     };
   }
+
+
+
+
 }
