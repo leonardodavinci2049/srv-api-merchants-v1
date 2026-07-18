@@ -33,6 +33,8 @@ export interface ProductOfferFormatOptions {
 
 @Injectable()
 export class ShopeeApiService {
+
+
   async generateShortLink(
     originUrl: string,
     config: ShopeeConfiguration,
