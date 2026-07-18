@@ -23,7 +23,7 @@ import { FunctionsService } from 'src/core/utils/forServices/functions.service';
 import { DbOperationService } from 'src/db.operation/db.operation.service';
 import { LinkGenerationCreateV2Dto } from 'src/db.operation/dto/link-generation-create-v2.dto';
 import { ShopeeApiService } from 'src/shopee-api/shopee-api.service';
-import { GenerateAffiliateLinkResponse } from './dto/generate-affiliate-link-response.dto';
+import { GenerateAffiliateLinkResponse } from './interface/generate-affiliate-link-response.dto';
 import { validateProductOfferParams } from './utils/getProductOffers/shopee-product-offer-validator.util';
 
 @Injectable()

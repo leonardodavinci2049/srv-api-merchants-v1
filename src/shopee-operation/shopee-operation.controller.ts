@@ -3,11 +3,11 @@ import { envs } from 'src/core/config';
 import { AuthGuard } from 'src/core/guards/auth.guard';
 import { ShopeeConfiguration } from 'src/core/interfaces/shopee-configuration.interface';
 import { GenerateAffiliateLinkDto } from './dto/generate-affiliate-link.dto';
-import { GenerateAffiliateLinkResponseDto } from './dto/generate-affiliate-link-response.dto';
+import { GenerateAffiliateLinkResponseDto } from './interface/generate-affiliate-link-response.dto';
 import { GetProductOffersDto } from './dto/get-product-offers.dto';
 import { GetShopeeOffersDto } from './dto/get-shopee-offers.dto';
-import { ProductOffersResponseDto } from './dto/product-offers-response.dto';
-import { ShopeeOffersResponseDto } from './dto/shopee-offers-response.dto';
+import { ProductOffersResponseDto } from './interface/product-offers-response.dto';
+import { ShopeeOffersResponseDto } from './interface/shopee-offers-response.dto';
 import { ShopeeOperationService } from './shopee-operation.service';
 
 @Controller('shopee-operation')
