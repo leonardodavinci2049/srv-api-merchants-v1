@@ -4,7 +4,7 @@
 
 This file defines repository-specific guidance for AI coding agents and automated contributors. Follow it for every change made within this repository.
 
-The project is a private NestJS REST API that sits between frontend applications and affiliate marketplace APIs. It provides a stable internal interface for provider authentication, affiliate-link generation, product discovery, offer retrieval, validation, and response normalization.
+The project is a private NestJS REST API that sits between frontend applications and affiliate marketplace APIs. It provides a stable internal interface for provider authentication, affiliate-link generation, product discovery, offer retrieval, product feed retrieval (catalog list and feed details), validation, and response normalization.
 
 ## Project Status
 

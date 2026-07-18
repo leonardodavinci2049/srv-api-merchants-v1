@@ -37,7 +37,7 @@ This architecture gives client applications:
 
 | Provider | Status | Current Scope |
 | --- | --- | --- |
-| Shopee | In progress | Affiliate links, product offers, and platform offers |
+| Shopee | In progress | Affiliate links, product offers, platform offers, and product feed retrieval |
 | AliExpress | Planned | Not yet implemented |
 | Amazon | Planned | Not yet implemented |
 | Mercado Libre | Planned | Not yet implemented |
@@ -49,6 +49,7 @@ This architecture gives client applications:
 - REST endpoints built with NestJS and TypeScript.
 - Shopee affiliate-link generation.
 - Shopee product and campaign offer retrieval.
+- Shopee product feed retrieval (catalog list via `listItemFeeds` and details via `getItemFeedData`).
 - DTO-based payload validation and transformation.
 - API-key authentication for protected routes.
 - Global request throttling.
@@ -139,6 +140,8 @@ All API routes use the `/api` global prefix.
 | `POST` | `/api/shopee-operation/v1/generate-affiliate-link` | API key | Generates an affiliate link from a Shopee product URL |
 | `POST` | `/api/shopee-operation/v1/get-product-offers` | API key | Searches Shopee product offers |
 | `POST` | `/api/shopee-operation/v1/get-shopee-offers` | API key | Retrieves Shopee platform offers |
+| `POST` | `/api/shopee-operation/v1/list-item-feeds` | API key | Lists Shopee product feeds (`FULL` or `DELTA`) |
+| `POST` | `/api/shopee-operation/v1/item-feed-data` | API key | Retrieves the rows of a specific Shopee product feed |
 
 ### Authentication
 

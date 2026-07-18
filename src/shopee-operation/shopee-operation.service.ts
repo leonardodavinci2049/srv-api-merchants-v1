@@ -7,6 +7,13 @@ import {
 } from '@nestjs/common';
 import { ResolvedShopeeConfiguration } from 'src/core/interfaces/shopee-configuration.interface';
 import {
+  FeedMode,
+  GetItemFeedDataQueryParams,
+  GetItemFeedDataResponse,
+  ListItemFeedsQueryParams,
+  ListItemFeedsResponse,
+} from 'src/core/interfaces/shopee-item-feed.interface';
+import {
   ShopeeOfferQueryParams,
   ShopeeOfferV2Response,
 } from 'src/core/interfaces/shopee-offer.interface';
@@ -20,8 +27,10 @@ import { DbOperationService } from 'src/db.operation/db.operation.service';
 import { LinkGenerationCreateV2Dto } from 'src/db.operation/dto/link-generation-create-v2.dto';
 import { ShopeeApiService } from 'src/shopee-api/shopee-api.service';
 import { GenerateAffiliateLinkDto } from './dto/generate-affiliate-link.dto';
+import { GetItemFeedDataDto } from './dto/get-item-feed-data.dto';
 import { GetProductOffersDto } from './dto/get-product-offers.dto';
 import { GetShopeeOffersDto } from './dto/get-shopee-offers.dto';
+import { ListItemFeedsDto } from './dto/list-item-feeds.dto';
 import { GenerateAffiliateLinkResponse } from './interface/generate-affiliate-link-response.dto';
 import { ShopeeConfigurationResolver } from './services/shopee-configuration.resolver';
 import { validateProductOfferParams } from './utils/getProductOffers/shopee-product-offer-validator.util';
@@ -297,5 +306,34 @@ export class ShopeeOperationService {
       page: dto.page ?? config.defaultPage,
       limit: dto.limit ?? config.defaultLimit,
     };
+  }
+
+  /**
+   * Lista os feeds de produtos da Shopee usando a configuracao resolvida
+   * pelo configId. feedMode ausente cai para FULL (carga inicial).
+   */
+  async listItemFeeds(dto: ListItemFeedsDto): Promise<ListItemFeedsResponse> {
+    const config = await this.configResolver.resolve(dto.configId);
+    const params: ListItemFeedsQueryParams = {
+      feedMode: dto.feedMode ?? FeedMode.FULL,
+    };
+    return this.shopeeApiService.listItemFeeds(params, config);
+  }
+
+  /**
+   * Busca os dados de um feed de produtos especifico. offset/limit usam os
+   * defaults documentados pela Shopee (0 e 500); o maximo de 500 e
+   * garantido pelo DTO.
+   */
+  async getItemFeedData(
+    dto: GetItemFeedDataDto,
+  ): Promise<GetItemFeedDataResponse> {
+    const config = await this.configResolver.resolve(dto.configId);
+    const params: GetItemFeedDataQueryParams = {
+      datafeedId: dto.datafeedId,
+      offset: dto.offset ?? 0,
+      limit: dto.limit ?? 500,
+    };
+    return this.shopeeApiService.getItemFeedData(params, config);
   }
 }

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ResolvedShopeeConfiguration } from 'src/core/interfaces/shopee-configuration.interface';
+import { FeedMode } from 'src/core/interfaces/shopee-item-feed.interface';
 import { FunctionsService } from 'src/core/utils/forServices/functions.service';
 import { DbOperationService } from 'src/db.operation/db.operation.service';
 import { ShopeeApiService } from 'src/shopee-api/shopee-api.service';
@@ -41,6 +42,8 @@ describe('ShopeeOperationService', () => {
     generateShortLink: jest.fn(),
     getProductOffers: jest.fn(),
     getShopeeOffers: jest.fn(),
+    listItemFeeds: jest.fn(),
+    getItemFeedData: jest.fn(),
   };
   const configResolver = { resolve: jest.fn() };
 
@@ -163,6 +166,127 @@ describe('ShopeeOperationService', () => {
       await expect(
         service.getShopeeOffers({ configId: 7 }),
       ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    });
+  });
+
+  describe('listItemFeeds', () => {
+    it('delega ao adapter usando feedMode FULL quando ausente', async () => {
+      const response = {
+        success: true,
+        data: { feeds: [] },
+      };
+      shopeeApiService.listItemFeeds.mockResolvedValue(response);
+
+      await expect(service.listItemFeeds({ configId: 7 })).resolves.toBe(
+        response,
+      );
+
+      expect(configResolver.resolve).toHaveBeenCalledWith(7);
+      expect(shopeeApiService.listItemFeeds).toHaveBeenCalledWith(
+        { feedMode: FeedMode.FULL },
+        resolvedConfig,
+      );
+    });
+
+    it('preserva feedMode DELTA do caller', async () => {
+      shopeeApiService.listItemFeeds.mockResolvedValue({
+        success: true,
+        data: { feeds: [] },
+      });
+
+      await service.listItemFeeds({ configId: 7, feedMode: FeedMode.DELTA });
+
+      expect(shopeeApiService.listItemFeeds).toHaveBeenCalledWith(
+        { feedMode: FeedMode.DELTA },
+        resolvedConfig,
+      );
+    });
+
+    it('propaga NotFoundException do resolver', async () => {
+      configResolver.resolve.mockRejectedValue(
+        new NotFoundException('Configuracao CONFIG_ID=99 nao encontrada'),
+      );
+
+      await expect(
+        service.listItemFeeds({ configId: 99 }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('propaga BadGatewayException do adapter', async () => {
+      shopeeApiService.listItemFeeds.mockRejectedValue(
+        new BadGatewayException('Erro ao listar feeds de produtos'),
+      );
+
+      await expect(
+        service.listItemFeeds({ configId: 7 }),
+      ).rejects.toBeInstanceOf(BadGatewayException);
+    });
+  });
+
+  describe('getItemFeedData', () => {
+    it('aplica defaults 0/500 quando offset/limit ausentes', async () => {
+      const response = {
+        success: true,
+        data: {
+          rows: [],
+          pageInfo: {
+            offset: '0',
+            limit: '500',
+            totalCount: '0',
+            hasMore: false,
+          },
+        },
+      };
+      shopeeApiService.getItemFeedData.mockResolvedValue(response);
+
+      await expect(
+        service.getItemFeedData({
+          configId: 7,
+          datafeedId: '12345_FULL_20260205',
+        }),
+      ).resolves.toBe(response);
+
+      expect(shopeeApiService.getItemFeedData).toHaveBeenCalledWith(
+        { datafeedId: '12345_FULL_20260205', offset: 0, limit: 500 },
+        resolvedConfig,
+      );
+    });
+
+    it('preserva offset/limit do caller', async () => {
+      shopeeApiService.getItemFeedData.mockResolvedValue({
+        success: true,
+        data: {
+          rows: [],
+          pageInfo: {
+            offset: '10',
+            limit: '100',
+            totalCount: '0',
+            hasMore: false,
+          },
+        },
+      });
+
+      await service.getItemFeedData({
+        configId: 7,
+        datafeedId: 'abc',
+        offset: 10,
+        limit: 100,
+      });
+
+      expect(shopeeApiService.getItemFeedData).toHaveBeenCalledWith(
+        { datafeedId: 'abc', offset: 10, limit: 100 },
+        resolvedConfig,
+      );
+    });
+
+    it('propaga NotFoundException do resolver', async () => {
+      configResolver.resolve.mockRejectedValue(
+        new NotFoundException('Configuracao CONFIG_ID=99 nao encontrada'),
+      );
+
+      await expect(
+        service.getItemFeedData({ configId: 99, datafeedId: 'abc' }),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 

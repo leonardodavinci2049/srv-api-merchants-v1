@@ -4,8 +4,10 @@ import { AuthGuard } from 'src/core/guards/auth.guard';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { GenerateAffiliateLinkDto } from './dto/generate-affiliate-link.dto';
+import { GetItemFeedDataDto } from './dto/get-item-feed-data.dto';
 import { GetProductOffersDto } from './dto/get-product-offers.dto';
 import { GetShopeeOffersDto } from './dto/get-shopee-offers.dto';
+import { ListItemFeedsDto } from './dto/list-item-feeds.dto';
 import { ShopeeOperationController } from './shopee-operation.controller';
 import { ShopeeOperationService } from './shopee-operation.service';
 
@@ -14,6 +16,8 @@ describe('ShopeeOperationController (contract)', () => {
     generateAffiliateLink: jest.fn(),
     getProductOffers: jest.fn(),
     getShopeeOffers: jest.fn(),
+    listItemFeeds: jest.fn(),
+    getItemFeedData: jest.fn(),
   };
 
   async function buildApp() {
@@ -182,6 +186,159 @@ describe('ShopeeOperationController (contract)', () => {
         .send({ configId: 99 })
         .expect(404);
 
+      await app.close();
+    });
+  });
+
+  describe('list-item-feeds', () => {
+    it('aceita apenas configId e repassa o dto', async () => {
+      const app = await buildApp();
+
+      service.listItemFeeds.mockResolvedValue({
+        success: true,
+        data: { feeds: [] },
+      });
+
+      await request(app.getHttpServer())
+        .post('/shopee-operation/v1/list-item-feeds')
+        .send({ configId: 5 })
+        .expect(201);
+
+      const dto: ListItemFeedsDto = { configId: 5 };
+      expect(service.listItemFeeds).toHaveBeenCalledWith(dto);
+      await app.close();
+    });
+
+    it('preserva feedMode quando informado', async () => {
+      const app = await buildApp();
+
+      service.listItemFeeds.mockResolvedValue({
+        success: true,
+        data: { feeds: [] },
+      });
+
+      await request(app.getHttpServer())
+        .post('/shopee-operation/v1/list-item-feeds')
+        .send({ configId: 5, feedMode: 'DELTA' })
+        .expect(201);
+
+      expect(service.listItemFeeds).toHaveBeenCalledWith({
+        configId: 5,
+        feedMode: 'DELTA',
+      });
+      await app.close();
+    });
+
+    it('rejeita feedMode invalido', async () => {
+      const app = await buildApp();
+
+      await request(app.getHttpServer())
+        .post('/shopee-operation/v1/list-item-feeds')
+        .send({ configId: 5, feedMode: 'INVALIDO' })
+        .expect(400);
+
+      expect(service.listItemFeeds).not.toHaveBeenCalled();
+      await app.close();
+    });
+
+    it('rejeita credenciais legacy (forbidNonWhitelisted)', async () => {
+      const app = await buildApp();
+
+      await request(app.getHttpServer())
+        .post('/shopee-operation/v1/list-item-feeds')
+        .send({ configId: 5, credential: 'x' })
+        .expect(400);
+
+      expect(service.listItemFeeds).not.toHaveBeenCalled();
+      await app.close();
+    });
+
+    it('mapeia sucesso sem data para resposta de erro do envelope', async () => {
+      const app = await buildApp();
+
+      service.listItemFeeds.mockResolvedValue({ success: true });
+
+      const res = await request(app.getHttpServer())
+        .post('/shopee-operation/v1/list-item-feeds')
+        .send({ configId: 5 })
+        .expect(201);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.error).toBe('Dados não encontrados');
+      await app.close();
+    });
+  });
+
+  describe('item-feed-data', () => {
+    it('valida datafeedId obrigatorio', async () => {
+      const app = await buildApp();
+
+      await request(app.getHttpServer())
+        .post('/shopee-operation/v1/item-feed-data')
+        .send({ configId: 5 })
+        .expect(400);
+
+      expect(service.getItemFeedData).not.toHaveBeenCalled();
+      await app.close();
+    });
+
+    it('rejeita limit acima de 500', async () => {
+      const app = await buildApp();
+
+      await request(app.getHttpServer())
+        .post('/shopee-operation/v1/item-feed-data')
+        .send({ configId: 5, datafeedId: 'abc', limit: 501 })
+        .expect(400);
+
+      expect(service.getItemFeedData).not.toHaveBeenCalled();
+      await app.close();
+    });
+
+    it('rejeita offset negativo', async () => {
+      const app = await buildApp();
+
+      await request(app.getHttpServer())
+        .post('/shopee-operation/v1/item-feed-data')
+        .send({ configId: 5, datafeedId: 'abc', offset: -1 })
+        .expect(400);
+
+      expect(service.getItemFeedData).not.toHaveBeenCalled();
+      await app.close();
+    });
+
+    it('preserva offset/limit validos no dto', async () => {
+      const app = await buildApp();
+
+      service.getItemFeedData.mockResolvedValue({
+        success: true,
+        data: {
+          rows: [],
+          pageInfo: {
+            offset: '0',
+            limit: '500',
+            totalCount: '0',
+            hasMore: false,
+          },
+        },
+      });
+
+      await request(app.getHttpServer())
+        .post('/shopee-operation/v1/item-feed-data')
+        .send({
+          configId: 3,
+          datafeedId: '12345_FULL_20260205',
+          offset: 0,
+          limit: 500,
+        })
+        .expect(201);
+
+      const dto: GetItemFeedDataDto = {
+        configId: 3,
+        datafeedId: '12345_FULL_20260205',
+        offset: 0,
+        limit: 500,
+      };
+      expect(service.getItemFeedData).toHaveBeenCalledWith(dto);
       await app.close();
     });
   });

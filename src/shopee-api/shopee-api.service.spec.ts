@@ -1,6 +1,11 @@
 import { BadGatewayException } from '@nestjs/common';
 import axios from 'axios';
 import { ShopeeConfiguration } from 'src/core/interfaces/shopee-configuration.interface';
+import {
+  FeedMode,
+  ShopeeGetItemFeedDataApiResponse,
+  ShopeeListItemFeedsApiResponse,
+} from 'src/core/interfaces/shopee-item-feed.interface';
 import { ShopeeApiService } from './shopee-api.service';
 
 jest.mock('axios');
@@ -124,6 +129,130 @@ describe('ShopeeApiService', () => {
       expect(result.success).toBe(true);
       expect(result.data?.products[0].currency).toBe('BRL');
       expect(result.data?.products[0].location).toBe('Brasil');
+    });
+  });
+
+  describe('listItemFeeds', () => {
+    it('serializa feedMode como enum GraphQL (sem aspas) e devolve feeds', async () => {
+      const apiResponse: ShopeeListItemFeedsApiResponse = {
+        data: {
+          listItemFeeds: {
+            feeds: [
+              {
+                datafeedId: '12345_FULL_20260205',
+                datafeedName: 'Home Appliance',
+                referenceId: '373421936506056704',
+                description: 'catalogo',
+                totalCount: '509',
+                date: '2026-02-08',
+                feedMode: FeedMode.FULL,
+              },
+            ],
+          },
+        },
+      };
+      mockedAxios.post.mockResolvedValue({ data: apiResponse });
+
+      const result = await service.listItemFeeds(
+        { feedMode: FeedMode.FULL },
+        config,
+      );
+
+      const body = captureRequest()[1];
+      expect(body.query).toContain('listItemFeeds(feedMode: FULL)');
+      expect(body.query).not.toContain('feedMode: "FULL"');
+      expect(body.query).toContain(
+        'feeds { datafeedId datafeedName referenceId description totalCount date feedMode }',
+      );
+      expect(result.success).toBe(true);
+      expect(result.data?.feeds[0].datafeedId).toBe('12345_FULL_20260205');
+    });
+
+    it('serializa feedMode DELTA sem aspas', async () => {
+      mockedAxios.post.mockResolvedValue({
+        data: { data: { listItemFeeds: { feeds: [] } } },
+      });
+
+      await service.listItemFeeds({ feedMode: FeedMode.DELTA }, config);
+
+      const body = captureRequest()[1];
+      expect(body.query).toContain('listItemFeeds(feedMode: DELTA)');
+    });
+
+    it('omite feedMode quando ausente', async () => {
+      mockedAxios.post.mockResolvedValue({
+        data: { data: { listItemFeeds: { feeds: [] } } },
+      });
+
+      await service.listItemFeeds({}, config);
+
+      const body = captureRequest()[1];
+      expect(body.query).toContain('listItemFeeds()');
+    });
+
+    it('traduz erro do provider para BadGatewayException', async () => {
+      mockedAxios.post.mockResolvedValue({
+        data: { errors: [{ message: 'Unauthorized' }] },
+      });
+
+      await expect(
+        service.listItemFeeds({ feedMode: FeedMode.DELTA }, config),
+      ).rejects.toBeInstanceOf(BadGatewayException);
+    });
+
+    it('traduz falha de rede para BadGatewayException', async () => {
+      mockedAxios.post.mockRejectedValue(new Error('ETIMEDOUT'));
+
+      await expect(service.listItemFeeds({}, config)).rejects.toBeInstanceOf(
+        BadGatewayException,
+      );
+    });
+  });
+
+  describe('getItemFeedData', () => {
+    it('serializa datafeedId/offset/limit e faz parse do columns', async () => {
+      const apiResponse: ShopeeGetItemFeedDataApiResponse = {
+        data: {
+          getItemFeedData: {
+            rows: [
+              {
+                columns: '{"itemId":"123"}',
+                updateType: 'NEW' as const,
+              },
+            ],
+            pageInfo: {
+              offset: '0',
+              limit: '500',
+              totalCount: '1000',
+              hasMore: true,
+            },
+          },
+        },
+      };
+      mockedAxios.post.mockResolvedValue({ data: apiResponse });
+
+      const result = await service.getItemFeedData(
+        { datafeedId: '12345_FULL_20260205', offset: 0, limit: 500 },
+        config,
+      );
+
+      const body = captureRequest()[1];
+      expect(body.query).toContain(
+        'getItemFeedData(datafeedId: "12345_FULL_20260205", offset: 0, limit: 500)',
+      );
+      expect(result.success).toBe(true);
+      expect(result.data?.rows[0].columns).toEqual({ itemId: '123' });
+      expect(result.data?.pageInfo.totalCount).toBe('1000');
+    });
+
+    it('traduz erro do provider para BadGatewayException', async () => {
+      mockedAxios.post.mockResolvedValue({
+        data: { errors: [{ message: 'datafeedId invalido' }] },
+      });
+
+      await expect(
+        service.getItemFeedData({ datafeedId: 'id' }, config),
+      ).rejects.toBeInstanceOf(BadGatewayException);
     });
   });
 });
