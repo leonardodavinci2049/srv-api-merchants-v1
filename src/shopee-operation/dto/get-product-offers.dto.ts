@@ -2,9 +2,11 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
+  IsPositive,
   IsString,
   Max,
   Min,
@@ -16,14 +18,10 @@ import {
 } from '../../core/interfaces/shopee-product-offer.interface';
 
 export class GetProductOffersDto {
-  // Campos obrigatórios de autenticação
-  @IsString()
-  @IsNotEmpty({ message: 'Credential é obrigatório' })
-  credential: string;
-
-  @IsString()
-  @IsNotEmpty({ message: 'SecretKey é obrigatório' })
-  secretKey: string;
+  @Type(() => Number)
+  @IsInt({ message: 'configId deve ser um número inteiro' })
+  @IsPositive({ message: 'configId deve ser um inteiro positivo' })
+  configId: number;
 
   // Campos opcionais de busca (pelo menos um deve ser fornecido)
   @IsOptional()
@@ -56,16 +54,16 @@ export class GetProductOffersDto {
 
   @IsOptional()
   @Type(() => Number)
-  @IsNumber({}, { message: 'Page deve ser um número' })
+  @IsInt({ message: 'Page deve ser um número inteiro' })
   @Min(1, { message: 'Page deve ser maior que 0' })
-  page?: number = 1;
+  page?: number;
 
   @IsOptional()
   @Type(() => Number)
-  @IsNumber({}, { message: 'Limit deve ser um número' })
+  @IsInt({ message: 'Limit deve ser um número inteiro' })
   @Min(1, { message: 'Limit deve ser pelo menos 1' })
   @Max(50, { message: 'Limit não pode ser maior que 50' })
-  limit?: number = 10;
+  limit?: number;
 
   @IsOptional()
   @Transform(({ value }) => {
@@ -98,3 +96,12 @@ export class GetProductOffersDto {
   })
   _atLeastOneSearchCriteria?: string;
 }
+
+/*Sample JSON for testing in body endpoint:
+{
+ "configId": 1,
+ "keyword": "liquidificador",
+ "page": 1,
+ "limit": 10
+}
+*/

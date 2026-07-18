@@ -14,7 +14,7 @@ export interface BotConfiguration {
   shopeeCredential: string;
   shopeeSecretKey: string;
   shopeeAffiliateEndpoint: string;
-  shopeeAffiliateTimeout: string;
+  shopeeAffiliateTimeout: number | string;
   shopeeAffiliateSubids: string;
   createdAt: Date;
   updatedAt: Date;
@@ -30,6 +30,7 @@ export interface DatabaseResponse {
   data: [
     Array<{
       CONFIG_ID: number;
+      PROJECT_ID?: number;
       CUSTOMER_NAME: string;
       TELEGRAM_BOT_NAME: string;
       TELEGRAM_BOT_LINK: string;
@@ -41,8 +42,17 @@ export interface DatabaseResponse {
       SHOPEE_CREDENTIAL: string;
       SHOPEE_SECRET_KEY: string;
       SHOPEE_AFFILIATE_ENDPOINT: string;
-      SHOPEE_AFFILIATE_TIMEOUT: string;
+      SHOPEE_AFFILIATE_TIMEOUT: number | string;
       SHOPEE_AFFILIATE_SUBIDS: string;
+      SHOPEE_PAGE: number;
+      SHOPEE_SORTTYPE: number;
+      SHOPEE_LIMIT: number;
+      CLIENT_ID: number;
+      SHOPEE_APP_ID: number;
+      SHOPEE_FLAG_CLICK: number;
+      SHOPEE_CURRENCY: string;
+      SHOPEE_LOCATION: string;
+      ACTIVE_FLAG: number;
       CREATEDAT: string;
       UPDATEDAT: string;
     }>,

@@ -1,7 +1,6 @@
 import * as crypto from 'node:crypto';
 import { BadGatewayException, Injectable } from '@nestjs/common';
 import axios, { AxiosRequestConfig } from 'axios';
-import { envs } from 'src/core/config';
 import { ShopeeConfiguration } from 'src/core/interfaces/shopee-configuration.interface';
 import {
   ShopeeOfferApiResponse,
@@ -21,6 +20,15 @@ interface GenerateShortLinkResponse {
   data?: { generateShortLink?: { shortLink?: string } };
   errors?: Array<{ message?: string }>;
   errMsg?: string;
+}
+
+/**
+ * Opcoes de formatacao repassadas ao mapper de product offers.
+ * currency/location sao fallbacks derivados do registro selecionado.
+ */
+export interface ProductOfferFormatOptions {
+  currencyFallback: string;
+  locationFallback: string;
 }
 
 @Injectable()
@@ -58,13 +66,14 @@ export class ShopeeApiService {
   async getProductOffers(
     params: ProductOfferV2QueryParams,
     config: ShopeeConfiguration,
+    options?: Partial<ProductOfferFormatOptions>,
   ): Promise<ProductOfferV2Response> {
     const response = await this.request<ShopeeProductOfferApiResponse>(
       this.buildProductOfferQuery(params),
       config,
       'buscar ofertas de produtos',
     );
-    const result = formatProductOffersResponse(response, params);
+    const result = formatProductOffersResponse(response, params, options);
     if (!result.success) {
       throw new BadGatewayException(result.message || result.error);
     }
@@ -103,9 +112,9 @@ export class ShopeeApiService {
     };
 
     try {
-      const response = await axios.post<T>(envs.SHOPEE_API_ENDPOINT, body, {
+      const response = await axios.post<T>(config.endpoint, body, {
         headers,
-        timeout: envs.SHOPEE_API_TIMEOUT_MS,
+        timeout: config.timeoutMs,
       });
       const data = response.data as T & {
         errors?: Array<{ message?: string }>;

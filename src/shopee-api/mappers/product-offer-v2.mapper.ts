@@ -1,4 +1,3 @@
-import { envs } from 'src/core/config';
 import {
   PageInfo,
   ProductOfferV2Item,
@@ -7,10 +6,28 @@ import {
   ShopeeProductOfferApiResponse,
 } from 'src/core/interfaces/shopee-product-offer.interface';
 
+export interface ProductOfferFormatOptions {
+  currencyFallback: string;
+  locationFallback: string;
+}
+
+const DEFAULT_OPTIONS: ProductOfferFormatOptions = {
+  currencyFallback: 'BRL',
+  locationFallback: 'Brasil',
+};
+
+/**
+ * Formata a resposta de productOfferV2. currency/location sao fallbacks
+ * derivados do registro selecionado, repassados via options. Valores
+ * retornados pelo provider permanecem autoritativos quando presentes.
+ */
 export function formatProductOffersResponse(
   apiResponse: ShopeeProductOfferApiResponse,
   params: ProductOfferV2QueryParams,
+  options?: Partial<ProductOfferFormatOptions>,
 ): ProductOfferV2Response {
+  const opts = { ...DEFAULT_OPTIONS, ...(options ?? {}) };
+
   if (apiResponse.errors?.length) {
     return {
       success: false,
@@ -44,7 +61,7 @@ export function formatProductOffersResponse(
     offerLink:
       node.offerLink ||
       `https://shopee.com.br/product/${node.shopId || 'shop'}/${node.itemId}`,
-    currency: node.currency || envs.SHOPEE_CURRENCY,
+    currency: node.currency || opts.currencyFallback,
     discountPercent: Number(node.discountPercent) || 0,
     originalPrice: String(node.originalPrice || node.priceMin || '0'),
     category: node.category || 'Geral',
@@ -52,7 +69,7 @@ export function formatProductOffersResponse(
     brandName: node.brandName || '',
     isOfficial: Boolean(node.isOfficial),
     freeShipping: Boolean(node.freeShipping),
-    location: node.location || envs.SHOPEE_LOCATION,
+    location: node.location || opts.locationFallback,
   }));
   const pageInfo: PageInfo = {
     page: params.page || 1,

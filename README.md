@@ -123,15 +123,10 @@ The complete template is available in [`.env.sample`](.env.sample).
 | `DATABASE_NAME` | MySQL database name |
 | `DATABASE_USER` | MySQL username |
 | `DATABASE_PASSWORD` | MySQL password |
-| `SHOPEE_API_ENDPOINT` | Shopee Affiliate API GraphQL endpoint |
-| `SHOPEE_API_TIMEOUT_MS` | Timeout for Shopee API requests in milliseconds |
-| `SHOPEE_AFFILIATE_SUBIDS` | Affiliate tracking sub-ID value |
-| `SHOPEE_APP_ID` | Shopee application identifier |
-| `SHOPEE_FLAG_CLICK` | Shopee click-tracking flag |
-| `SHOPEE_CURRENCY` | Currency used for Shopee data |
-| `SHOPEE_LOCATION` | Market location used for Shopee data |
 
 The application also accepts the `DB_MYSQL_*` naming convention as an alternative to the documented `DATABASE_*` variables.
+
+> All Shopee runtime configuration (credentials, endpoint, timeout, sub-IDs, pagination/sort defaults, and link persistence fields) is loaded exclusively from `tbl_config` via `sp_config_select_id_v1`, selected by the caller-provided `configId` on each request. Shopee settings are no longer read from environment variables.
 
 ## API Overview
 
@@ -167,15 +162,14 @@ curl --request POST \
   --header 'Content-Type: application/json' \
   --header 'x-api-key: your-api-key' \
   --data '{
-    "credential": "your-shopee-credential",
-    "secretKey": "your-shopee-secret-key",
+    "configId": 1,
     "keyword": "wireless headphones",
     "page": 1,
     "limit": 10
   }'
 ```
 
-Request payloads are strictly validated. Unknown fields are rejected, and eligible values are converted to their declared DTO types when possible.
+Request payloads are strictly validated. Unknown fields (including Shopee credentials or `clientId`) are rejected, and eligible values are converted to their declared DTO types when possible. Each Shopee operation requires a positive integer `configId` that selects the exact `tbl_config` record used for credentials, endpoint, timeout, sub-IDs, defaults, and link persistence.
 
 ## Available Scripts
 

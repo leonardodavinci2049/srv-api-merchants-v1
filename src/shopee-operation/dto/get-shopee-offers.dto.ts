@@ -1,9 +1,9 @@
 import { Type } from 'class-transformer';
 import {
   IsEnum,
-  IsNotEmpty,
-  IsNumber,
+  IsInt,
   IsOptional,
+  IsPositive,
   IsString,
   Max,
   Min,
@@ -11,14 +11,10 @@ import {
 import { ShopeeOfferSortType } from '../../core/interfaces/shopee-offer.interface';
 
 export class GetShopeeOffersDto {
-  // Campos obrigatórios de autenticação
-  @IsString()
-  @IsNotEmpty({ message: 'Credential é obrigatório' })
-  credential: string;
-
-  @IsString()
-  @IsNotEmpty({ message: 'SecretKey é obrigatório' })
-  secretKey: string;
+  @Type(() => Number)
+  @IsInt({ message: 'configId deve ser um número inteiro' })
+  @IsPositive({ message: 'configId deve ser um inteiro positivo' })
+  configId: number;
 
   // Campos opcionais de busca
   @IsOptional()
@@ -34,25 +30,24 @@ export class GetShopeeOffersDto {
 
   @IsOptional()
   @Type(() => Number)
-  @IsNumber({}, { message: 'Page deve ser um número' })
+  @IsInt({ message: 'Page deve ser um número inteiro' })
   @Min(1, { message: 'Page deve ser maior que 0' })
-  page?: number = 1;
+  page?: number;
 
   @IsOptional()
   @Type(() => Number)
-  @IsNumber({}, { message: 'Limit deve ser um número' })
+  @IsInt({ message: 'Limit deve ser um número inteiro' })
   @Min(1, { message: 'Limit deve ser pelo menos 1' })
   @Max(50, { message: 'Limit não pode ser maior que 50' })
-  limit?: number = 10;
+  limit?: number;
 }
 
 /*Sample JSON for testing in body endpoint POST /shopee/get-shopee-offers:
 {
-  "credential": "your_credential_here",
-  "secretKey": "your_secret_key_here",
-  "keyword": "clothes",
-  "sortType": 1,
-  "page": 1,
-  "limit": 10
+ "configId": 1,
+ "keyword": "clothes",
+ "sortType": 1,
+ "page": 1,
+ "limit": 10
 }
 */

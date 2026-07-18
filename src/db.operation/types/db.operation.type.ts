@@ -19,19 +19,29 @@ export interface SpOperationResult {
 
 export interface tblConfigSelectIdRecords extends RowDataPacket {
   CONFIG_ID?: number;
+  PROJECT_ID?: number;
   CUSTOMER_NAME?: string;
   TELEGRAM_BOT_NAME?: string;
   TELEGRAM_BOT_LINK?: string;
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_BOT_CHATID?: string;
   WEBHOOK_URL?: string;
-  WEBHOOK_LOCAL_PORT: number;
+  WEBHOOK_LOCAL_PORT?: number;
   OPENAI_API_KEY?: string;
   SHOPEE_CREDENTIAL?: string;
   SHOPEE_SECRET_KEY?: string;
-  SHOPEE_AFFILIATE_ENDPOINT;
-  SHOPEE_AFFILIATE_TIMEOUT?: string;
+  SHOPEE_AFFILIATE_ENDPOINT?: string;
+  SHOPEE_AFFILIATE_TIMEOUT?: number | string;
   SHOPEE_AFFILIATE_SUBIDS?: string;
+  SHOPEE_PAGE?: number;
+  SHOPEE_SORTTYPE?: number;
+  SHOPEE_LIMIT?: number;
+  CLIENT_ID?: number;
+  SHOPEE_APP_ID?: number;
+  SHOPEE_FLAG_CLICK?: number;
+  SHOPEE_CURRENCY?: string;
+  SHOPEE_LOCATION?: string;
+  ACTIVE_FLAG?: number;
   CREATEDAT?: Date;
   UPDATEDAT?: Date;
 }
