@@ -1,11 +1,9 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
-import { envs } from 'src/core/config';
 import { AuthGuard } from 'src/core/guards/auth.guard';
-import { ShopeeConfiguration } from 'src/core/interfaces/shopee-configuration.interface';
 import { GenerateAffiliateLinkDto } from './dto/generate-affiliate-link.dto';
-import { GenerateAffiliateLinkResponseDto } from './interface/generate-affiliate-link-response.dto';
 import { GetProductOffersDto } from './dto/get-product-offers.dto';
 import { GetShopeeOffersDto } from './dto/get-shopee-offers.dto';
+import { GenerateAffiliateLinkResponseDto } from './interface/generate-affiliate-link-response.dto';
 import { ProductOffersResponseDto } from './interface/product-offers-response.dto';
 import { ShopeeOffersResponseDto } from './interface/shopee-offers-response.dto';
 import { ShopeeOperationService } from './shopee-operation.service';
@@ -34,20 +32,8 @@ export class ShopeeOperationController {
   @UseGuards(AuthGuard)
   @Post('v1/generate-affiliate-link')
   async generateAffiliateLink(@Body() dto: GenerateAffiliateLinkDto) {
-    const shopeeConfig: ShopeeConfiguration = {
-      credential: dto.credential,
-      secretKey: dto.secretKey,
-      affiliateSubids: envs.SHOPEE_AFFILIATE_SUBIDS,
-    };
+    const result = await this.shopeeOperationService.generateAffiliateLink(dto);
 
-    // Chamar o serviço aprimorado
-    const result = await this.shopeeOperationService.generateAffiliateLink(
-      dto.originUrl,
-      shopeeConfig,
-      dto.clientId,
-    );
-
-    // Retornar resposta formatada
     if (result.success) {
       if (!result.affiliateLink) {
         return GenerateAffiliateLinkResponseDto.error(
@@ -61,45 +47,18 @@ export class ShopeeOperationController {
         result.productInfo,
         result.databaseRecord,
       );
-    } else {
-      return GenerateAffiliateLinkResponseDto.error(
-        result.error || 'Erro desconhecido',
-        result.message,
-      );
     }
+    return GenerateAffiliateLinkResponseDto.error(
+      result.error || 'Erro desconhecido',
+      result.message,
+    );
   }
 
   @UseGuards(AuthGuard)
   @Post('v1/get-product-offers')
   async getProductOffers(@Body() dto: GetProductOffersDto) {
-    // Criar configuração a partir do DTO
-    const shopeeConfig: ShopeeConfiguration = {
-      credential: dto.credential,
-      secretKey: dto.secretKey,
-      affiliateSubids: envs.SHOPEE_AFFILIATE_SUBIDS,
-    };
+    const result = await this.shopeeOperationService.getProductOffers(dto);
 
-    // Criar parâmetros de busca
-    const searchParams = {
-      keyword: dto.keyword,
-      shopId: dto.shopId,
-      itemId: dto.itemId,
-      productCatId: dto.productCatId,
-      listType: dto.listType,
-      sortType: dto.sortType,
-      page: dto.page || 1,
-      limit: dto.limit || 10,
-      isAMSOffer: dto.isAMSOffer,
-      isKeySeller: dto.isKeySeller,
-    };
-
-    // Chamar o serviço
-    const result = await this.shopeeOperationService.getProductOffers(
-      searchParams,
-      shopeeConfig,
-    );
-
-    // Retornar resposta formatada
     if (result.success) {
       if (!result.data) {
         return ProductOffersResponseDto.error(
@@ -112,39 +71,18 @@ export class ShopeeOperationController {
         result.data.products,
         result.data.pageInfo,
       );
-    } else {
-      return ProductOffersResponseDto.error(
-        result.error || 'Erro desconhecido',
-        result.message,
-      );
     }
+    return ProductOffersResponseDto.error(
+      result.error || 'Erro desconhecido',
+      result.message,
+    );
   }
 
   @UseGuards(AuthGuard)
   @Post('v1/get-shopee-offers')
   async getShopeeOffers(@Body() dto: GetShopeeOffersDto) {
-    // Criar configuração a partir do DTO
-    const shopeeConfig: ShopeeConfiguration = {
-      credential: dto.credential,
-      secretKey: dto.secretKey,
-      affiliateSubids: envs.SHOPEE_AFFILIATE_SUBIDS,
-    };
+    const result = await this.shopeeOperationService.getShopeeOffers(dto);
 
-    // Criar parâmetros de busca
-    const searchParams = {
-      keyword: dto.keyword,
-      sortType: dto.sortType,
-      page: dto.page || 1,
-      limit: dto.limit || 10,
-    };
-
-    // Chamar o serviço
-    const result = await this.shopeeOperationService.getShopeeOffers(
-      searchParams,
-      shopeeConfig,
-    );
-
-    // Retornar resposta formatada
     if (result.success) {
       if (!result.data) {
         return ShopeeOffersResponseDto.error(
@@ -157,11 +95,10 @@ export class ShopeeOperationController {
         result.data.offers,
         result.data.pageInfo,
       );
-    } else {
-      return ShopeeOffersResponseDto.error(
-        result.error || 'Erro desconhecido',
-        result.message,
-      );
     }
+    return ShopeeOffersResponseDto.error(
+      result.error || 'Erro desconhecido',
+      result.message,
+    );
   }
 }

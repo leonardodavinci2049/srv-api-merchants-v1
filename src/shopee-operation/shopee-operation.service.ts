@@ -5,11 +5,7 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { envs } from 'src/core/config';
-import {
-  ShopeeConfiguration,
-  ShopeeConfigurationExtractor,
-} from 'src/core/interfaces/shopee-configuration.interface';
+import { ResolvedShopeeConfiguration } from 'src/core/interfaces/shopee-configuration.interface';
 import {
   ShopeeOfferQueryParams,
   ShopeeOfferV2Response,
@@ -23,7 +19,11 @@ import { FunctionsService } from 'src/core/utils/forServices/functions.service';
 import { DbOperationService } from 'src/db.operation/db.operation.service';
 import { LinkGenerationCreateV2Dto } from 'src/db.operation/dto/link-generation-create-v2.dto';
 import { ShopeeApiService } from 'src/shopee-api/shopee-api.service';
+import { GenerateAffiliateLinkDto } from './dto/generate-affiliate-link.dto';
+import { GetProductOffersDto } from './dto/get-product-offers.dto';
+import { GetShopeeOffersDto } from './dto/get-shopee-offers.dto';
 import { GenerateAffiliateLinkResponse } from './interface/generate-affiliate-link-response.dto';
+import { ShopeeConfigurationResolver } from './services/shopee-configuration.resolver';
 import { validateProductOfferParams } from './utils/getProductOffers/shopee-product-offer-validator.util';
 
 @Injectable()
@@ -34,6 +34,7 @@ export class ShopeeOperationService {
     private readonly functionsService: FunctionsService,
     private readonly dbOperationService: DbOperationService,
     private readonly shopeeApiService: ShopeeApiService,
+    private readonly configResolver: ShopeeConfigurationResolver,
   ) {}
 
   /**
@@ -64,29 +65,26 @@ export class ShopeeOperationService {
     return Number.isNaN(parsed) ? 0 : parsed;
   }
 
-  create() {
-    return 'This action adds a new shopeeOperation';
+  /**
+   * Gera link de afiliado com validação, busca de informações do produto e gravação no banco.
+   * A configuracao Shopee é resolvida uma única vez a partir do configId do caller.
+   */
+  async generateAffiliateLink(
+    dto: GenerateAffiliateLinkDto,
+  ): Promise<GenerateAffiliateLinkResponse> {
+    const config = await this.configResolver.resolve(dto.configId);
+    return this.generateAffiliateLinkWithConfig(dto.originUrl, config);
   }
 
   /**
-   * Gera link de afiliado com validação, busca de informações do produto e gravação no banco de dados
-   * @param originUrl URL original do produto
-   * @param shopeeConfig Configurações da Shopee (do banco de dados)
+   * Implementacao interna que reutiliza a configuracao já resolvida, evitando
+   * um segundo lookup no banco quando o enlace de geracao de link precisa
+   * enriquecer o produto via getProductOffersInternal.
    */
-  async generateAffiliateLink(
+  private async generateAffiliateLinkWithConfig(
     originUrl: string,
-    shopeeConfig: ShopeeConfiguration,
-    clientId: number,
+    config: ResolvedShopeeConfiguration,
   ): Promise<GenerateAffiliateLinkResponse> {
-    // 1. Validar configuração da Shopee
-    if (!ShopeeConfigurationExtractor.validateShopeeConfig(shopeeConfig)) {
-      const errorMsg =
-        ShopeeConfigurationExtractor.getValidationErrorMessage(shopeeConfig);
-      this.logger.error(errorMsg);
-      throw new BadRequestException(errorMsg);
-    }
-
-    // 2. Validar URL de produto Shopee
     if (!this.functionsService.isValidShopeeProductUrl(originUrl)) {
       this.logger.warn(`URL inválida recebida: ${originUrl}`);
       throw new BadRequestException(
@@ -94,7 +92,7 @@ export class ShopeeOperationService {
       );
     }
 
-    // 3. Resolver URL encurtada (se necessário) antes de gerar o link
+    // Resolver URL encurtada (se necessário) antes de gerar o link
     let resolvedUrl = originUrl;
     if (this.functionsService.isShortShopeeUrl(originUrl)) {
       const fullUrl = await this.functionsService.resolveShortUrl(originUrl);
@@ -106,12 +104,12 @@ export class ShopeeOperationService {
       resolvedUrl = fullUrl;
     }
 
-    // 4. Gerar link de afiliado (usando a URL resolvida)
+    // Gerar link de afiliado usando a URL resolvida
     let affiliateLink: string;
     try {
       affiliateLink = await this.shopeeApiService.generateShortLink(
         resolvedUrl,
-        shopeeConfig,
+        config,
       );
     } catch (error) {
       this.logger.error(
@@ -121,7 +119,7 @@ export class ShopeeOperationService {
       throw error;
     }
 
-    // 5. Extrair ID do produto da URL resolvida
+    // Extrair ID do produto da URL resolvida
     const productInfo = this.functionsService.extractProductNameId(resolvedUrl);
     if (!productInfo) {
       this.logger.warn(
@@ -132,7 +130,8 @@ export class ShopeeOperationService {
       );
     }
 
-    // 6. Carregar informações do produto usando a API da Shopee
+    // Carregar informações do produto reusando a config já resolvida.
+    // O enrichment interno usa page=1/limit=1 fixos (nao substituir por defaults do DB).
     let productDetails: ProductOfferV2Item | undefined;
     try {
       const productOfferParams: ProductOfferV2QueryParams = {
@@ -141,9 +140,9 @@ export class ShopeeOperationService {
         limit: 1,
       };
 
-      const productOfferResponse = await this.getProductOffers(
+      const productOfferResponse = await this.getProductOffersInternal(
         productOfferParams,
-        shopeeConfig,
+        config,
       );
 
       if (
@@ -162,16 +161,16 @@ export class ShopeeOperationService {
       throw error;
     }
 
-    // 7. Gravar informações no banco de dados
+    // Gravar informações no banco, derivando persistence defaults do registro
     let databaseRecord: { recordId: number; message: string } | undefined;
     try {
       const linkGenerationDto: LinkGenerationCreateV2Dto = {
         pe_uuid: '',
-        pe_client_id: clientId,
-        pe_app_id: envs.SHOPEE_APP_ID,
+        pe_client_id: config.clientId,
+        pe_app_id: config.appId,
         pe_link_destination: originUrl,
         pe_affiliate_link: affiliateLink,
-        pe_flag_click: envs.SHOPEE_FLAG_CLICK,
+        pe_flag_click: config.flagClick,
         pe_item_id: this.safeParseInt(
           productDetails?.itemId || productInfo.productId,
         ),
@@ -187,7 +186,7 @@ export class ShopeeOperationService {
         pe_image_url: productDetails?.imageUrl || '',
         pe_product_link: productDetails?.productLink || originUrl,
         pe_offer_link: productDetails?.offerLink || affiliateLink,
-        pe_currency: productDetails.currency || envs.SHOPEE_CURRENCY,
+        pe_currency: productDetails.currency || config.currency,
         pe_discount_percent: productDetails?.discountPercent || 0,
         pe_original_price: this.safeParseFloat(productDetails?.originalPrice),
         pe_category: productDetails?.category || '',
@@ -195,7 +194,7 @@ export class ShopeeOperationService {
         pe_brand_name: productDetails?.brandName || '',
         pe_is_official: productDetails?.isOfficial ? 1 : 0,
         pe_free_shipping: productDetails?.freeShipping ? 1 : 0,
-        pe_location: productDetails.location || envs.SHOPEE_LOCATION,
+        pe_location: productDetails.location || config.location,
       };
 
       const dbResult =
@@ -223,7 +222,6 @@ export class ShopeeOperationService {
         : new InternalServerErrorException('Falha ao persistir o link');
     }
 
-    // 8. Retornar resposta completa
     return {
       success: true,
       affiliateLink,
@@ -233,48 +231,81 @@ export class ShopeeOperationService {
   }
 
   /**
-   * Busca ofertas de produtos usando configurações fornecidas
-   * @param params Parâmetros de busca para ProductOfferV2
-   * @param shopeeConfig Configurações da Shopee
+   * Busca ofertas de produtos usando a configuracao resolvida pelo configId.
    */
   async getProductOffers(
-    params: ProductOfferV2QueryParams,
-    shopeeConfig: ShopeeConfiguration,
+    dto: GetProductOffersDto,
   ): Promise<ProductOfferV2Response> {
-    // Validar configuração
-    if (!ShopeeConfigurationExtractor.validateShopeeConfig(shopeeConfig)) {
-      const errorMsg =
-        ShopeeConfigurationExtractor.getValidationErrorMessage(shopeeConfig);
-      this.logger.error(errorMsg);
-      throw new BadRequestException(errorMsg);
-    }
+    const config = await this.configResolver.resolve(dto.configId);
+    const params = this.buildProductOfferParams(dto, config);
+    return this.getProductOffersInternal(params, config);
+  }
 
-    // Validar parâmetros de busca
+  /**
+   * Busca ofertas da Shopee usando a configuracao resolvida pelo configId.
+   */
+  async getShopeeOffers(
+    dto: GetShopeeOffersDto,
+  ): Promise<ShopeeOfferV2Response> {
+    const config = await this.configResolver.resolve(dto.configId);
+    const params = this.buildShopeeOfferParams(dto, config);
+    return this.shopeeApiService.getShopeeOffers(params, config);
+  }
+
+  /**
+   * Executa a chamada ao adapter depois que a configuracao já está resolvida.
+   * Usado pelo fluxo público e pelo enrichment interno de generateAffiliateLink.
+   */
+  private async getProductOffersInternal(
+    params: ProductOfferV2QueryParams,
+    config: ResolvedShopeeConfiguration,
+  ): Promise<ProductOfferV2Response> {
     const validationError = validateProductOfferParams(params);
     if (validationError) {
       throw new BadRequestException(validationError);
     }
 
-    return this.shopeeApiService.getProductOffers(params, shopeeConfig);
+    return this.shopeeApiService.getProductOffers(params, config, {
+      currencyFallback: config.currency,
+      locationFallback: config.location,
+    });
   }
 
   /**
-   * Busca ofertas (campanhas promocionais) da Shopee
-   * @param params Parâmetros de busca para shopeeOfferV2
-   * @param shopeeConfig Configurações da Shopee
+   * Monta os parametros de ProductOfferV2 aplicando request > default do
+   * registro selecionado. Os bounds (1..50) já sao garantidos pelo DTO.
    */
-  async getShopeeOffers(
-    params: ShopeeOfferQueryParams,
-    shopeeConfig: ShopeeConfiguration,
-  ): Promise<ShopeeOfferV2Response> {
-    // Validar configuração
-    if (!ShopeeConfigurationExtractor.validateShopeeConfig(shopeeConfig)) {
-      const errorMsg =
-        ShopeeConfigurationExtractor.getValidationErrorMessage(shopeeConfig);
-      this.logger.error(errorMsg);
-      throw new BadRequestException(errorMsg);
-    }
+  private buildProductOfferParams(
+    dto: GetProductOffersDto,
+    config: ResolvedShopeeConfiguration,
+  ): ProductOfferV2QueryParams {
+    return {
+      keyword: dto.keyword,
+      shopId: dto.shopId,
+      itemId: dto.itemId,
+      productCatId: dto.productCatId,
+      listType: dto.listType,
+      sortType: dto.sortType ?? config.defaultSortType,
+      page: dto.page ?? config.defaultPage,
+      limit: dto.limit ?? config.defaultLimit,
+      isAMSOffer: dto.isAMSOffer,
+      isKeySeller: dto.isKeySeller,
+    };
+  }
 
-    return this.shopeeApiService.getShopeeOffers(params, shopeeConfig);
+  /**
+   * Monta os parametros de shopeeOfferV2 aplicando request > default do
+   * registro selecionado. Os bounds (1..50) já sao garantidos pelo DTO.
+   */
+  private buildShopeeOfferParams(
+    dto: GetShopeeOffersDto,
+    config: ResolvedShopeeConfiguration,
+  ): ShopeeOfferQueryParams {
+    return {
+      keyword: dto.keyword,
+      sortType: dto.sortType ?? config.defaultSortType,
+      page: dto.page ?? config.defaultPage,
+      limit: dto.limit ?? config.defaultLimit,
+    };
   }
 }

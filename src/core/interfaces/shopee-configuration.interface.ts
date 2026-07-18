@@ -1,64 +1,32 @@
-import { BotConfiguration } from './bot-configuration.interface';
+import type { SortType } from './shopee-product-offer.interface';
 
 /**
- * Interface para configurações da Shopee passadas entre serviços
+ * Configuracao de transporte usada pelo adapter da API Shopee.
+ * Todos os campos sao derivados do registro selecionado no banco de dados.
  */
 export interface ShopeeConfiguration {
   credential: string;
   secretKey: string;
   affiliateSubids: string;
+  endpoint: string;
+  timeoutMs: number;
 }
 
 /**
- * Interface para parâmetros de geração de link de afiliado
+ * Configuracao Shopee resolvida a partir do registro selecionado pelo caller.
+ *
+ * Estende ShopeeConfiguration (campos de transporte) e adiciona campos de
+ * operacao/persistencia e defaults de request. O configId e mantido apenas
+ * para contexto diagnostico; nada aqui deve ser logado como segredo.
  */
-export interface GenerateAffiliateLinkParams {
-  originUrl: string;
-  shopeeConfig: ShopeeConfiguration;
+export interface ResolvedShopeeConfiguration extends ShopeeConfiguration {
+  configId: number;
+  clientId: number;
+  appId: number;
+  flagClick: number;
+  currency: string;
+  location: string;
+  defaultPage: number;
+  defaultSortType: SortType;
+  defaultLimit: number;
 }
-
-/**
- * Interface para resposta da API da Shopee
- */
-export interface ShopeeApiResponse {
-  data: {
-    generateShortLink: {
-      shortLink: string;
-    };
-  };
-}
-
-/**
- * Utilitário para extrair configuração da Shopee de BotConfiguration
- */
-function extractShopeeConfig(botConfig: BotConfiguration): ShopeeConfiguration {
-  return {
-    credential: botConfig.shopeeCredential,
-    secretKey: botConfig.shopeeSecretKey,
-    affiliateSubids: botConfig.shopeeAffiliateSubids,
-  };
-}
-
-function validateShopeeConfig(config: ShopeeConfiguration): boolean {
-  return !!(config.credential && config.secretKey && config.affiliateSubids);
-}
-
-function getValidationErrorMessage(config: ShopeeConfiguration): string {
-  const missing: string[] = [];
-
-  if (!config.credential) missing.push('credential');
-  if (!config.secretKey) missing.push('secretKey');
-  if (!config.affiliateSubids) missing.push('affiliateSubids');
-
-  if (missing.length > 0) {
-    return `Configurações da Shopee incompletas: ${missing.join(', ')}`;
-  }
-
-  return '';
-}
-
-export const ShopeeConfigurationExtractor = {
-  extractShopeeConfig,
-  validateShopeeConfig,
-  getValidationErrorMessage,
-};
