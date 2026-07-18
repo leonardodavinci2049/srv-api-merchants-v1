@@ -253,8 +253,6 @@ export class ShopeeOperationService {
     };
   }
 
-
-
   /**
    * Executa a chamada ao adapter depois que a configuracao já está resolvida.
    * Usado pelo fluxo público e pelo enrichment interno de generateAffiliateLink.
@@ -274,9 +272,6 @@ export class ShopeeOperationService {
     });
   }
 
-
-
-
   /**
    * Busca ofertas da Shopee usando a configuracao resolvida pelo configId.
    */
@@ -287,7 +282,6 @@ export class ShopeeOperationService {
     const params = this.buildShopeeOfferParams(dto, config);
     return this.shopeeApiService.getShopeeOffers(params, config);
   }
-
 
   /**
    * Monta os parametros de shopeeOfferV2 aplicando request > default do
@@ -304,8 +298,4 @@ export class ShopeeOperationService {
       limit: dto.limit ?? config.defaultLimit,
     };
   }
-
-
-
-
 }
