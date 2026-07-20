@@ -1,8 +1,16 @@
-/**
- * Query parameterizada para sp_config_select_id_v1.
- *
- * Os valores de PROJECT_ID e CONFIG_ID sao passados como placeholders '?'
- * (execute) pelo DatabaseService, evitando interpolacao de valores
- * controlados pelo caller na string SQL.
- */
-export const FIND_CONFIG_SELECT_ID_QUERY = 'CALL sp_config_select_id_v1(?, ?)';
+import { FindConfigSelectIdDto } from "../dto/find-config-select-id.dto";
+
+export const SHOPEE_PROJECT_ID = 1;
+
+export function configSelectIdQuery(dataJsonDto: FindConfigSelectIdDto): string {
+  const CONFIG_ID = dataJsonDto.CONFIG_ID;
+  const olAppId = SHOPEE_PROJECT_ID;
+
+  const queryString = ` call sp_config_select_id_v1(
+     ${CONFIG_ID},
+    ${olAppId}
+      ) `;
+
+  return queryString;
+}
+
