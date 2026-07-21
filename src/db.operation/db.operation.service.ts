@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { processProcedureResultMutation } from 'src/core/procedure.result/process-procedure-result.mutation';
+import { ResultSetHeader } from 'mysql2';
 import { processProcedureResultMultiQuery } from 'src/core/procedure.result/process-procedure-result.query';
-import { MESSAGES } from 'src/core/utils/constants/globalConstants';
+import {
+  MESSAGES,
+  RESPONSE_CODES,
+} from 'src/core/utils/constants/globalConstants';
 
 import { resultQueryData } from 'src/core/utils/globalResult/global.result';
 import { ResultModel } from 'src/core/utils/result.model';
@@ -15,7 +18,10 @@ import {
   FIND_CONFIG_SELECT_ID_QUERY,
   SHOPEE_PROJECT_ID,
 } from './query/find-config-select-id.query';
-import { LinkGenerationCreateV2Query } from './query/link-generation-create-v2.query';
+import {
+  LINK_GENERATION_CREATE_V2_QUERY,
+  LinkGenerationCreateV2Params,
+} from './query/link-generation-create-v2.query';
 import { LinkGenerationFindAllV2Query } from './query/link-generation-find-all-v2.query';
 import { PromoLinkFindAllV2Query } from './query/promo-link-find-all_v2.query';
 
@@ -23,7 +29,6 @@ import { ConfigShopeeSelectResult } from './types/db.operation.type';
 import {
   SpResultlinkGenerationFindAllData,
   SpResultPromoLinkFindAllData,
-  SpResultRecordCreateType,
 } from './types/link-generation.type';
 
 /**
@@ -92,22 +97,40 @@ export class DbOperationService {
     }
   }
 
-  async taskLinkGenerationCreateV2(dataJsonDto: LinkGenerationCreateV2Dto) {
+  async taskLinkGenerationCreateV2(
+    dataJsonDto: LinkGenerationCreateV2Dto,
+  ): Promise<ResultModel> {
     try {
-      const queryString = LinkGenerationCreateV2Query(dataJsonDto);
+      const params = LinkGenerationCreateV2Params(dataJsonDto);
 
-      const resultData = (await this.dbService.selectExecute(
-        queryString,
-      )) as unknown as SpResultRecordCreateType;
+      const resultData = (await this.dbService.ModifyExecute(
+        LINK_GENERATION_CREATE_V2_QUERY,
+        params,
+      )) as ResultSetHeader;
 
-      return processProcedureResultMutation(
-        resultData as unknown[],
-        'Link generation  create failed',
+      const recordId = resultData.insertId ?? 0;
+      const qtRecords = resultData.affectedRows ?? 0;
+
+      if (recordId === 0 || qtRecords === 0) {
+        return new ResultModel(
+          RESPONSE_CODES.PROCESSING_FAILED,
+          'Link generation create failed',
+          0,
+          [],
+        );
+      }
+
+      return resultQueryData(
+        recordId,
+        0,
+        'Cadastro criado com sucesso',
+        resultData,
+        qtRecords,
       );
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : MESSAGES.UNKNOWN_ERROR;
-      return new ResultModel(100404, errorMessage, 0, []);
+      return new ResultModel(RESPONSE_CODES.NOT_FOUND, errorMessage, 0, []);
     }
   }
 
