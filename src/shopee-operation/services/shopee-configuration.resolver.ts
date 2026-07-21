@@ -11,7 +11,10 @@ import {
   CONFIG_LOOKUP_STATUS,
   DbOperationService,
 } from 'src/db.operation/db.operation.service';
-import { SpConfigSelectIdType } from 'src/db.operation/types/db.operation.type';
+import {
+  ConfigShopeeSelectResult,
+  TblConfigShopeeRecord,
+} from 'src/db.operation/types/db.operation.type';
 import {
   MissingShopeeConfigField,
   ShopeeConfigurationMapper,
@@ -84,11 +87,8 @@ export class ShopeeConfigurationResolver {
 export function extractRecord(
   result: ResultModel,
   configId: number,
-): SpConfigSelectIdType[0][number] | undefined {
-  const rows = (
-    result.data as unknown as SpConfigSelectIdType | undefined
-  )?.[0];
-  const record = rows?.[0];
+): TblConfigShopeeRecord {
+  const record = (result.data as ConfigShopeeSelectResult | undefined)?.[0];
   if (!record) {
     throw new NotFoundException(
       `Configuracao CONFIG_ID=${configId} nao encontrada`,

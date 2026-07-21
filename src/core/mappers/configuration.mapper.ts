@@ -4,88 +4,60 @@ import {
   DatabaseResponse,
 } from '../interfaces/bot-configuration.interface';
 
-/**
- * Classe responsável por mapear dados do banco de dados para configuração do bot
- * Implementa fallbacks para .env quando necessário
- */
 const logger = new Logger('ConfigurationMapper');
 
 function mapDatabaseToBotConfig(response: DatabaseResponse): BotConfiguration {
-  // Validar resposta do banco
   if (response.statusCode !== 100200) {
     logger.error(`Erro ao carregar configuração do banco: ${response.message}`);
     throw new Error(`Erro ao carregar configuração: ${response.message}`);
   }
 
-  if (!response.data?.[0]?.[0]) {
+  const config = response.data?.[0];
+  if (!config) {
     logger.error('Nenhuma configuração encontrada no banco de dados');
     throw new Error('Nenhuma configuração encontrada');
   }
 
-  const config = response.data[0][0];
-  logger.log(`Configuração carregada do banco: CONFIG_ID=${config.CONFIG_ID}`);
+  logger.log(`Configuração carregada do banco: configId=${config.configId}`);
 
   return {
-    configId: config.CONFIG_ID,
-    customerName: config.CUSTOMER_NAME,
-    telegramBotName: config.TELEGRAM_BOT_NAME,
-    telegramBotLink: config.TELEGRAM_BOT_LINK,
-    telegramBotToken: getRequiredValueFromDatabase(
-      config.TELEGRAM_BOT_TOKEN,
-      'TELEGRAM_BOT_TOKEN',
-    ),
-    telegramBotChatId: config.TELEGRAM_BOT_CHATID,
-    webhookUrl: buildWebhookUrl(config.WEBHOOK_URL, config.WEBHOOK_LOCAL_PORT),
-    webhookLocalPort: config.WEBHOOK_LOCAL_PORT,
-    openaiApiKey: config.OPENAI_API_KEY,
+    configId: config.configId,
+    projectId: config.projectId,
+    clientId: config.clientId,
+    accountName: config.accountName,
     shopeeCredential: getRequiredValueFromDatabase(
-      config.SHOPEE_CREDENTIAL,
-      'SHOPEE_CREDENTIAL',
+      config.shopeeCredential,
+      'shopeeCredential',
     ),
     shopeeSecretKey: getRequiredValueFromDatabase(
-      config.SHOPEE_SECRET_KEY,
-      'SHOPEE_SECRET_KEY',
+      config.shopeeSecretKey,
+      'shopeeSecretKey',
     ),
     shopeeAffiliateEndpoint: getRequiredValueFromDatabase(
-      config.SHOPEE_AFFILIATE_ENDPOINT,
-      'SHOPEE_AFFILIATE_ENDPOINT',
+      config.shopeeAffiliateEndpoint,
+      'shopeeAffiliateEndpoint',
     ),
-    shopeeAffiliateTimeout: config.SHOPEE_AFFILIATE_TIMEOUT,
+    shopeeAffiliateTimeout: config.shopeeAffiliateTimeout,
     shopeeAffiliateSubids: getRequiredValueFromDatabase(
-      config.SHOPEE_AFFILIATE_SUBIDS,
-      'SHOPEE_AFFILIATE_SUBIDS',
+      config.shopeeAffiliateSubids,
+      'shopeeAffiliateSubids',
     ),
-    createdAt: new Date(config.CREATEDAT),
-    updatedAt: new Date(config.UPDATEDAT),
+    shopeePage: config.shopeePage,
+    shopeeSorttype: config.shopeeSorttype,
+    shopeeLimit: config.shopeeLimit,
+    shopeeAppId: config.shopeeAppId,
+    shopeeFlagClick: config.shopeeFlagClick,
+    shopeeCurrency: config.shopeeCurrency,
+    shopeeLocation: config.shopeeLocation,
+    activeFlag: config.activeFlag,
   };
 }
 
-function buildWebhookUrl(webhookUrl: string | null, port: number): string {
-  if (webhookUrl && webhookUrl.trim() !== '') {
-    /*  this.logger.log(`Usando webhook URL do banco: ${webhookUrl}`); */
-    return webhookUrl;
-  }
-
-  // Fallback: Construir URL baseada na porta
-  if (port && port > 0) {
-    const constructedUrl = `http://localhost:${port}`;
-    logger.warn(
-      `Webhook URL não configurada no banco, construindo baseada na porta: ${constructedUrl}`,
-    );
-    return constructedUrl;
-  }
-
-  // Erro final: sem webhook URL nem porta
-  throw new Error(
-    'URL do webhook é obrigatória: configure WEBHOOK_URL no banco de dados',
-  );
-}
-
 function getRequiredValueFromDatabase(
-  dbValue: string | undefined,
+  dbValue: string | null,
   fieldName: string,
 ): string {
-  if (dbValue && dbValue.trim() !== '') {
+  if (dbValue?.trim()) {
     return dbValue;
   }
 
