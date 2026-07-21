@@ -11,6 +11,7 @@ export const LINK_GENERATION_CREATE_V2_QUERY = `
     flagClick,
     itemId,
     productName,
+    
     shopName,
     shopId,
     priceMin,
