@@ -144,6 +144,29 @@ describe('DbOperationService.taskLinkGenerationCreateV2', () => {
     expect(result.message).toBe('Cadastro criado com sucesso');
   });
 
+  it('keeps column count, placeholder count and params array aligned', () => {
+    const params = LinkGenerationCreateV2Params(baseDto);
+
+    const colMatch = LINK_GENERATION_CREATE_V2_QUERY.match(
+      /INSERT INTO \w+\s*\(([^)]+)\)/s,
+    );
+    const valMatch = LINK_GENERATION_CREATE_V2_QUERY.match(
+      /\)\s*VALUES\s*\(([^;]+)\);/s,
+    );
+
+    const colCount = colMatch[1]
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean).length;
+    const placeholderCount = (valMatch[1].match(/\?/g) ?? []).length;
+    const timestampCount = (valMatch[1].match(/CURRENT_TIMESTAMP/g) ?? [])
+      .length;
+
+    expect(colCount).toBe(30);
+    expect(placeholderCount).toBe(params.length);
+    expect(placeholderCount + timestampCount).toBe(colCount);
+  });
+
   it('applies the expected defaults for nullable COALESCE columns', () => {
     const params = LinkGenerationCreateV2Params({
       pe_app_id: 1,
