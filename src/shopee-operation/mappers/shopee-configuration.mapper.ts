@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { ResolvedShopeeConfiguration } from 'src/core/interfaces/shopee-configuration.interface';
 import { SortType } from 'src/core/interfaces/shopee-product-offer.interface';
-import { tblConfigSelectIdRecords } from 'src/db.operation/types/db.operation.type';
+import { TblConfigShopeeRecord } from 'src/db.operation/types/db.operation.type';
 
 /**
  * Categorias de campos obrigatorios ausentes ou invalidos na configuracao.
@@ -44,7 +44,7 @@ export class ShopeeConfigurationMapper {
    * resolver produza a mensagem de erro 422 adequada.
    */
   map(
-    record: tblConfigSelectIdRecords | undefined | null,
+    record: TblConfigShopeeRecord | undefined | null,
   ): ShopeeConfigMapperResult {
     if (!record) {
       return { missing: [], inactive: false };
@@ -53,52 +53,52 @@ export class ShopeeConfigurationMapper {
     const missing: MissingShopeeConfigField[] = [];
 
     const credential = requireNonEmpty(
-      record.SHOPEE_CREDENTIAL,
+      record.shopeeCredential,
       'credential',
       missing,
     );
     const secretKey = requireNonEmpty(
-      record.SHOPEE_SECRET_KEY,
+      record.shopeeSecretKey,
       'secretKey',
       missing,
     );
     const endpoint = requireNonEmpty(
-      record.SHOPEE_AFFILIATE_ENDPOINT,
+      record.shopeeAffiliateEndpoint,
       'endpoint',
       missing,
     );
     const affiliateSubids = requireNonEmpty(
-      record.SHOPEE_AFFILIATE_SUBIDS,
+      record.shopeeAffiliateSubids,
       'affiliateSubids',
       missing,
     );
     const currency = requireNonEmpty(
-      record.SHOPEE_CURRENCY,
+      record.shopeeCurrency,
       'currency',
       missing,
     );
     const location = requireNonEmpty(
-      record.SHOPEE_LOCATION,
+      record.shopeeLocation,
       'location',
       missing,
     );
 
     const timeoutMs = requirePositiveInt(
-      record.SHOPEE_AFFILIATE_TIMEOUT,
+      record.shopeeAffiliateTimeout,
       'timeoutMs',
       missing,
     );
-    const clientId = requirePositiveInt(record.CLIENT_ID, 'clientId', missing);
-    const appId = requirePositiveInt(record.SHOPEE_APP_ID, 'appId', missing);
-    const page = requirePositiveInt(record.SHOPEE_PAGE, 'page', missing);
+    const clientId = requirePositiveInt(record.clientId, 'clientId', missing);
+    const appId = requirePositiveInt(record.shopeeAppId, 'appId', missing);
+    const page = requirePositiveInt(record.shopeePage, 'page', missing);
     const sortType = requirePositiveInt(
-      record.SHOPEE_SORTTYPE,
+      record.shopeeSorttype,
       'sortType',
       missing,
     );
-    const limit = requirePositiveInt(record.SHOPEE_LIMIT, 'limit', missing);
+    const limit = requirePositiveInt(record.shopeeLimit, 'limit', missing);
 
-    const inactive = isInactiveFlag(record.ACTIVE_FLAG);
+    const inactive = isInactiveFlag(record.activeFlag);
 
     if (missing.length > 0) {
       return { missing, inactive };
@@ -110,10 +110,10 @@ export class ShopeeConfigurationMapper {
       affiliateSubids,
       endpoint,
       timeoutMs,
-      configId: record.CONFIG_ID ?? 0,
+      configId: record.configId,
       clientId,
       appId,
-      flagClick: coerceFlagClick(record.SHOPEE_FLAG_CLICK),
+      flagClick: coerceFlagClick(record.shopeeFlagClick),
       currency,
       location,
       defaultPage: page,

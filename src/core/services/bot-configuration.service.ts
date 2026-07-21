@@ -50,8 +50,7 @@ export class BotConfigurationService {
 
       // Preparar parâmetros para consulta
       const searchParams: FindConfigSelectIdDto = {
-        PROJECT_ID: projectId,
-        CONFIG_ID: configId,
+        configId,
       };
 
       // Buscar no banco de dados
@@ -159,15 +158,10 @@ export class BotConfigurationService {
   /**
    * Método utilitário para criar parâmetros de busca padronizados
    * @param configId ID da configuração
-   * @param projectId ID do projeto
    */
-  createSearchParams(
-    configId: number,
-    projectId: number = 1,
-  ): ConfigSearchParams {
+  createSearchParams(configId: number): ConfigSearchParams {
     return {
-      PROJECT_ID: projectId,
-      CONFIG_ID: configId,
+      configId,
     };
   }
 

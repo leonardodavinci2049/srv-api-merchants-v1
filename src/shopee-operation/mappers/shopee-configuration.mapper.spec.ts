@@ -1,29 +1,30 @@
-import { tblConfigSelectIdRecords } from 'src/db.operation/types/db.operation.type';
+import { TblConfigShopeeRecord } from 'src/db.operation/types/db.operation.type';
 import { ShopeeConfigurationMapper } from './shopee-configuration.mapper';
 
 describe('ShopeeConfigurationMapper', () => {
   const mapper = new ShopeeConfigurationMapper();
 
   function makeRecord(
-    overrides: Partial<tblConfigSelectIdRecords> = {},
-  ): tblConfigSelectIdRecords {
+    overrides: Partial<TblConfigShopeeRecord> = {},
+  ): TblConfigShopeeRecord {
     return {
-      CONFIG_ID: 7,
-      PROJECT_ID: 1,
-      SHOPEE_CREDENTIAL: 'credential',
-      SHOPEE_SECRET_KEY: 'secret',
-      SHOPEE_AFFILIATE_ENDPOINT: 'https://example.com/graphql',
-      SHOPEE_AFFILIATE_TIMEOUT: 5000,
-      SHOPEE_AFFILIATE_SUBIDS: 'ALINY',
-      SHOPEE_PAGE: 1,
-      SHOPEE_SORTTYPE: 2,
-      SHOPEE_LIMIT: 20,
-      CLIENT_ID: 9,
-      SHOPEE_APP_ID: 11,
-      SHOPEE_FLAG_CLICK: 1,
-      SHOPEE_CURRENCY: 'BRL',
-      SHOPEE_LOCATION: 'Brasil',
-      ACTIVE_FLAG: 1,
+      configId: 7,
+      projectId: 1,
+      clientId: 9,
+      accountName: 'Conta de teste',
+      shopeeCredential: 'credential',
+      shopeeSecretKey: 'secret',
+      shopeeAffiliateEndpoint: 'https://example.com/graphql',
+      shopeeAffiliateTimeout: '5000',
+      shopeeAffiliateSubids: 'ALINY',
+      shopeePage: 1,
+      shopeeSorttype: 2,
+      shopeeLimit: 20,
+      shopeeAppId: 11,
+      shopeeFlagClick: 1,
+      shopeeCurrency: 'BRL',
+      shopeeLocation: 'Brasil',
+      activeFlag: 1,
       ...overrides,
     };
   }
@@ -51,12 +52,12 @@ describe('ShopeeConfigurationMapper', () => {
   });
 
   it('coerce timeout em string numerica para inteiro', () => {
-    const result = mapper.map(makeRecord({ SHOPEE_AFFILIATE_TIMEOUT: '7000' }));
+    const result = mapper.map(makeRecord({ shopeeAffiliateTimeout: '7000' }));
     expect(result.config?.timeoutMs).toBe(7000);
   });
 
   it('rejeita timeout invalido', () => {
-    const result = mapper.map(makeRecord({ SHOPEE_AFFILIATE_TIMEOUT: 'abc' }));
+    const result = mapper.map(makeRecord({ shopeeAffiliateTimeout: 'abc' }));
     expect(result.config).toBeUndefined();
     expect(result.missing).toContain('timeoutMs');
   });
@@ -64,9 +65,9 @@ describe('ShopeeConfigurationMapper', () => {
   it('rejeita clientId, appId e page nao positivos', () => {
     const result = mapper.map(
       makeRecord({
-        CLIENT_ID: 0,
-        SHOPEE_APP_ID: -1,
-        SHOPEE_PAGE: 0,
+        clientId: 0,
+        shopeeAppId: -1,
+        shopeePage: 0,
       }),
     );
     expect(result.config).toBeUndefined();
@@ -76,22 +77,20 @@ describe('ShopeeConfigurationMapper', () => {
   });
 
   it('permite flagClick zero', () => {
-    const result = mapper.map(makeRecord({ SHOPEE_FLAG_CLICK: 0 }));
+    const result = mapper.map(makeRecord({ shopeeFlagClick: 0 }));
     expect(result.config?.flagClick).toBe(0);
   });
 
-  it('marca como inativo quando ACTIVE_FLAG = 0', () => {
-    const result = mapper.map(makeRecord({ ACTIVE_FLAG: 0 }));
-    expect(result.inactive).toBe(true);
-  });
-
-  it('marca como inativo quando ACTIVE_FLAG = "false"', () => {
-    const result = mapper.map(makeRecord({ ACTIVE_FLAG: 'false' }));
+  it('marca como inativo quando activeFlag = 0', () => {
+    const result = mapper.map(makeRecord({ activeFlag: 0 }));
     expect(result.inactive).toBe(true);
   });
 
   it('reporta todos os campos ausentes sem expor valores', () => {
-    const empty: tblConfigSelectIdRecords = { CONFIG_ID: 7 };
+    const empty = {
+      configId: 7,
+      projectId: 1,
+    } as TblConfigShopeeRecord;
     const result = mapper.map(empty);
     expect(result.config).toBeUndefined();
     expect(result.missing.sort()).toEqual(
@@ -122,9 +121,7 @@ describe('ShopeeConfigurationMapper', () => {
   it('nao exige campos de Telegram/webhook (independencia)', () => {
     const result = mapper.map(
       makeRecord({
-        TELEGRAM_BOT_TOKEN: undefined,
-        WEBHOOK_URL: undefined,
-        WEBHOOK_LOCAL_PORT: undefined,
+        accountName: null,
       }),
     );
     expect(result.config).toBeDefined();

@@ -1,16 +1,26 @@
-import { FindConfigSelectIdDto } from "../dto/find-config-select-id.dto";
-
 export const SHOPEE_PROJECT_ID = 1;
 
-export function configSelectIdQuery(dataJsonDto: FindConfigSelectIdDto): string {
-  const CONFIG_ID = dataJsonDto.CONFIG_ID;
-  const olAppId = SHOPEE_PROJECT_ID;
-
-  const queryString = ` call sp_config_select_id_v1(
-     ${CONFIG_ID},
-    ${olAppId}
-      ) `;
-
-  return queryString;
-}
-
+export const FIND_CONFIG_SELECT_ID_QUERY = `
+  SELECT
+    configId,
+    projectId,
+    clientId,
+    accountName,
+    shopeeCredential,
+    shopeeSecretKey,
+    shopeeAffiliateEndpoint,
+    shopeeAffiliateTimeout,
+    shopeeAffiliateSubids,
+    shopeePage,
+    shopeeSorttype,
+    shopeeLimit,
+    shopeeAppId,
+    shopeeFlagClick,
+    shopeeCurrency,
+    shopeeLocation,
+    activeFlag
+  FROM tbl_config_shopee
+  WHERE projectId = ?
+    AND configId = ?
+  LIMIT 1
+`;

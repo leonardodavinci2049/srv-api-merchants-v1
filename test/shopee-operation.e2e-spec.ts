@@ -6,7 +6,7 @@ import {
   CONFIG_LOOKUP_STATUS,
   DbOperationService,
 } from 'src/db.operation/db.operation.service';
-import { SpConfigSelectIdType } from 'src/db.operation/types/db.operation.type';
+import { TblConfigShopeeRecord } from 'src/db.operation/types/db.operation.type';
 import { ShopeeApiService } from 'src/shopee-api/shopee-api.service';
 import { ShopeeOperationModule } from 'src/shopee-operation/shopee-operation.module';
 import request from 'supertest';
@@ -31,28 +31,29 @@ describe('ShopeeOperation (e2e-style)', () => {
   };
 
   function configRow(
-    overrides: Partial<SpConfigSelectIdType[0][number]> = {},
+    overrides: Partial<TblConfigShopeeRecord> = {},
   ): ResultModel {
     const record = {
-      CONFIG_ID: 1,
-      PROJECT_ID: 1,
-      SHOPEE_CREDENTIAL: 'credential',
-      SHOPEE_SECRET_KEY: 'secret',
-      SHOPEE_AFFILIATE_ENDPOINT: 'https://example.com/graphql',
-      SHOPEE_AFFILIATE_TIMEOUT: 5000,
-      SHOPEE_AFFILIATE_SUBIDS: 'ALINY',
-      SHOPEE_PAGE: 1,
-      SHOPEE_SORTTYPE: 1,
-      SHOPEE_LIMIT: 20,
-      CLIENT_ID: 9,
-      SHOPEE_APP_ID: 11,
-      SHOPEE_FLAG_CLICK: 1,
-      SHOPEE_CURRENCY: 'BRL',
-      SHOPEE_LOCATION: 'Brasil',
-      ACTIVE_FLAG: 1,
+      configId: 1,
+      projectId: 1,
+      clientId: 9,
+      accountName: 'Conta de teste',
+      shopeeCredential: 'credential',
+      shopeeSecretKey: 'secret',
+      shopeeAffiliateEndpoint: 'https://example.com/graphql',
+      shopeeAffiliateTimeout: '5000',
+      shopeeAffiliateSubids: 'ALINY',
+      shopeePage: 1,
+      shopeeSorttype: 1,
+      shopeeLimit: 20,
+      shopeeAppId: 11,
+      shopeeFlagClick: 1,
+      shopeeCurrency: 'BRL',
+      shopeeLocation: 'Brasil',
+      activeFlag: 1,
       ...overrides,
     };
-    const data = [[record], [], { affectedRows: 0 }] as unknown;
+    const data = [record];
     return new ResultModel(CONFIG_LOOKUP_STATUS.SUCCESS, 'ok', 1, data, 1);
   }
 
@@ -112,7 +113,7 @@ describe('ShopeeOperation (e2e-style)', () => {
         CONFIG_LOOKUP_STATUS.NOT_FOUND,
         'nao encontrada',
         0,
-        [[], [], {}],
+        [],
         0,
       ),
     );
@@ -125,7 +126,7 @@ describe('ShopeeOperation (e2e-style)', () => {
 
   it('retorna 422 quando a configuracao esta inativa', async () => {
     dbOperationService.tskFindConfigSelectId.mockResolvedValue(
-      configRow({ ACTIVE_FLAG: 0 }),
+      configRow({ activeFlag: 0 }),
     );
 
     await request(app.getHttpServer())
@@ -134,7 +135,7 @@ describe('ShopeeOperation (e2e-style)', () => {
       .expect(422);
   });
 
-  it('retorna 500 quando o banco falha ao executar a procedure', async () => {
+  it('retorna 500 quando o banco falha ao executar a consulta', async () => {
     dbOperationService.tskFindConfigSelectId.mockResolvedValue(
       new ResultModel(
         CONFIG_LOOKUP_STATUS.EXECUTION_FAILURE,
