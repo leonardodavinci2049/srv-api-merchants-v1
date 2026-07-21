@@ -7,19 +7,19 @@ import { resultQueryData } from 'src/core/utils/globalResult/global.result';
 import { ResultModel } from 'src/core/utils/result.model';
 import { DatabaseService } from 'src/database/database.service';
 
-import {
-  buildFindConfigSelectIdDto,
-  FindConfigSelectIdDto,
-} from './dto/find-config-select-id.dto';
+import { FindConfigSelectIdDto } from './dto/find-config-select-id.dto';
 import { LinkGenerationCreateV2Dto } from './dto/link-generation-create-v2.dto';
 import { LinkGenerationFindAllV2Dto } from './dto/link-generation-find-all-v2.dto';
 import { PromoLinkFindAllV2Dto } from './dto/promo-link-find-all_v2.dto';
-import { FIND_CONFIG_SELECT_ID_QUERY } from './query/find-config-select-id.query';
+import {
+  FIND_CONFIG_SELECT_ID_QUERY,
+  SHOPEE_PROJECT_ID,
+} from './query/find-config-select-id.query';
 import { LinkGenerationCreateV2Query } from './query/link-generation-create-v2.query';
 import { LinkGenerationFindAllV2Query } from './query/link-generation-find-all-v2.query';
 import { PromoLinkFindAllV2Query } from './query/promo-link-find-all_v2.query';
 
-import { SpConfigSelectIdType } from './types/db.operation.type';
+import { ConfigShopeeSelectResult } from './types/db.operation.type';
 import {
   SpResultlinkGenerationFindAllData,
   SpResultPromoLinkFindAllData,
@@ -43,40 +43,36 @@ export class DbOperationService {
   /**
    * Busca exatamente o CONFIG_ID informado pelo caller.
    *
-   * O CONTRACT_ID nunca e deduzido nem substituido por default. O resultado
+   * O CONFIG_ID nunca e deduzido nem substituido por default. O resultado
    * distingue registro ausente (NOT_FOUND) de falha de execucao
    * (EXECUTION_FAILURE) para que o resolver possa emitir o codigo HTTP correto.
    */
   async tskFindConfigSelectId(
     dataJsonDto: FindConfigSelectIdDto | number,
   ): Promise<ResultModel> {
-    const dto =
-      typeof dataJsonDto === 'number'
-        ? buildFindConfigSelectIdDto(dataJsonDto)
-        : dataJsonDto;
+    const configId =
+      typeof dataJsonDto === 'number' ? dataJsonDto : dataJsonDto.configId;
 
     try {
       const resultData = (await this.dbService.selectExecute(
         FIND_CONFIG_SELECT_ID_QUERY,
-        [dto.PROJECT_ID, dto.CONFIG_ID],
-      )) as unknown as SpConfigSelectIdType;
+        [SHOPEE_PROJECT_ID, configId],
+      )) as ConfigShopeeSelectResult;
 
-      const tblRecords = resultData[0];
-      const qtRecords: number = tblRecords.length;
-      const tblRecord = tblRecords[0];
-      const recordId: number = tblRecord?.CONFIG_ID ?? 0;
+      const qtRecords = resultData.length;
+      const recordId = resultData[0]?.configId ?? 0;
 
       if (recordId === 0 || qtRecords === 0) {
         return new ResultModel(
           CONFIG_LOOKUP_STATUS.NOT_FOUND,
-          `Configuracao CONFIG_ID=${dto.CONFIG_ID} nao encontrada`,
+          `Configuracao CONFIG_ID=${configId} nao encontrada`,
           0,
           resultData,
           qtRecords,
         );
       }
 
-      return resultQueryData<SpConfigSelectIdType>(
+      return resultQueryData<ConfigShopeeSelectResult>(
         recordId,
         0,
         '',

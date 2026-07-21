@@ -9,7 +9,7 @@ import {
   CONFIG_LOOKUP_STATUS,
   DbOperationService,
 } from 'src/db.operation/db.operation.service';
-import { SpConfigSelectIdType } from 'src/db.operation/types/db.operation.type';
+import { TblConfigShopeeRecord } from 'src/db.operation/types/db.operation.type';
 import { ShopeeConfigurationMapper } from '../mappers/shopee-configuration.mapper';
 import { ShopeeConfigurationResolver } from './shopee-configuration.resolver';
 
@@ -19,28 +19,29 @@ describe('ShopeeConfigurationResolver', () => {
   let mapper: ShopeeConfigurationMapper;
 
   function successResult(
-    overrides: Partial<SpConfigSelectIdType[0][number]> = {},
+    overrides: Partial<TblConfigShopeeRecord> = {},
   ): ResultModel {
     const record = {
-      CONFIG_ID: 7,
-      PROJECT_ID: 1,
-      SHOPEE_CREDENTIAL: 'credential',
-      SHOPEE_SECRET_KEY: 'secret',
-      SHOPEE_AFFILIATE_ENDPOINT: 'https://example.com/graphql',
-      SHOPEE_AFFILIATE_TIMEOUT: 5000,
-      SHOPEE_AFFILIATE_SUBIDS: 'ALINY',
-      SHOPEE_PAGE: 1,
-      SHOPEE_SORTTYPE: 2,
-      SHOPEE_LIMIT: 20,
-      CLIENT_ID: 9,
-      SHOPEE_APP_ID: 11,
-      SHOPEE_FLAG_CLICK: 1,
-      SHOPEE_CURRENCY: 'BRL',
-      SHOPEE_LOCATION: 'Brasil',
-      ACTIVE_FLAG: 1,
+      configId: 7,
+      projectId: 1,
+      clientId: 9,
+      accountName: 'Conta de teste',
+      shopeeCredential: 'credential',
+      shopeeSecretKey: 'secret',
+      shopeeAffiliateEndpoint: 'https://example.com/graphql',
+      shopeeAffiliateTimeout: '5000',
+      shopeeAffiliateSubids: 'ALINY',
+      shopeePage: 1,
+      shopeeSorttype: 2,
+      shopeeLimit: 20,
+      shopeeAppId: 11,
+      shopeeFlagClick: 1,
+      shopeeCurrency: 'BRL',
+      shopeeLocation: 'Brasil',
+      activeFlag: 1,
       ...overrides,
     };
-    const data = [[record], [], { affectedRows: 0 }] as unknown;
+    const data = [record];
     return new ResultModel(CONFIG_LOOKUP_STATUS.SUCCESS, 'ok', 7, data, 1);
   }
 
@@ -86,7 +87,7 @@ describe('ShopeeConfigurationResolver', () => {
         CONFIG_LOOKUP_STATUS.NOT_FOUND,
         'nao encontrada',
         0,
-        [[], [], {}],
+        [],
         0,
       ),
     );
@@ -96,9 +97,9 @@ describe('ShopeeConfigurationResolver', () => {
     );
   });
 
-  it('joga UnprocessableEntityException quando ACTIVE_FLAG = 0', async () => {
+  it('joga UnprocessableEntityException quando activeFlag = 0', async () => {
     dbOperationService.tskFindConfigSelectId.mockResolvedValue(
-      successResult({ ACTIVE_FLAG: 0 }),
+      successResult({ activeFlag: 0 }),
     );
 
     await expect(resolver.resolve(7)).rejects.toBeInstanceOf(
@@ -108,7 +109,7 @@ describe('ShopeeConfigurationResolver', () => {
 
   it('joga UnprocessableEntityException quando faltam campos obrigatorios', async () => {
     dbOperationService.tskFindConfigSelectId.mockResolvedValue(
-      successResult({ SHOPEE_CREDENTIAL: undefined, CLIENT_ID: 0 }),
+      successResult({ shopeeCredential: null, clientId: 0 }),
     );
 
     await expect(resolver.resolve(7)).rejects.toBeInstanceOf(

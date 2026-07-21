@@ -1,8 +1,26 @@
-/**
- * Query parameterizada para sp_config_select_id_v1.
- *
- * Os valores de PROJECT_ID e CONFIG_ID sao passados como placeholders '?'
- * (execute) pelo DatabaseService, evitando interpolacao de valores
- * controlados pelo caller na string SQL.
- */
-export const FIND_CONFIG_SELECT_ID_QUERY = 'CALL sp_config_select_id_v1(?, ?)';
+export const SHOPEE_PROJECT_ID = 1;
+
+export const FIND_CONFIG_SELECT_ID_QUERY = `
+  SELECT
+    configId,
+    projectId,
+    clientId,
+    accountName,
+    shopeeCredential,
+    shopeeSecretKey,
+    shopeeAffiliateEndpoint,
+    shopeeAffiliateTimeout,
+    shopeeAffiliateSubids,
+    shopeePage,
+    shopeeSorttype,
+    shopeeLimit,
+    shopeeAppId,
+    shopeeFlagClick,
+    shopeeCurrency,
+    shopeeLocation,
+    activeFlag
+  FROM tbl_config_shopee
+  WHERE projectId = ?
+    AND configId = ?
+  LIMIT 1
+`;
