@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
-import { AliexpressOperationController } from './aliexpress-operation.controller';
-import { AliexpressOperationService } from './aliexpress-operation.service';
+import { AliExpressApiModule } from 'src/aliexpress-api/aliexpress-api.module';
+import { AliExpressOperationController } from './aliexpress-operation.controller';
+import { AliExpressOperationService } from './aliexpress-operation.service';
 
 @Module({
-  controllers: [AliexpressOperationController],
-  providers: [AliexpressOperationService],
+  imports: [AliExpressApiModule],
+  controllers: [AliExpressOperationController],
+  providers: [AliExpressOperationService],
 })
-export class AliexpressOperationModule {}
+export class AliExpressOperationModule {}

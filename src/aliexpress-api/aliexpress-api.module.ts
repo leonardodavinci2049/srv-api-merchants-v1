@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-
-import { AliexpressApiService } from './aliexpress-api.service';
+import { AliExpressApiService } from './aliexpress-api.service';
 
 @Module({
-  controllers: [],
-  providers: [AliexpressApiService],
-  exports: [AliexpressApiService],
+  providers: [AliExpressApiService],
+  exports: [AliExpressApiService],
 })
-export class AliexpressApiModule {}
+export class AliExpressApiModule {}
