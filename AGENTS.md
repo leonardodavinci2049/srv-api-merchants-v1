@@ -172,6 +172,8 @@ Account for provider timeouts, malformed responses, authentication failures, thr
 
 ## Testing
 
+> **Temporary project policy:** Do not create, restore, or modify unit or end-to-end tests during the current development phase unless the user explicitly requests it. Use non-test validation such as linting and builds when appropriate. This policy overrides the testing guidance below while it remains in this file.
+
 - Add or update tests for every behavior change when an adjacent test pattern exists.
 - Keep unit tests deterministic and independent of network access, real credentials, wall-clock timing, and shared databases.
 - Mock `ShopeeApiService`, `DbOperationService`, and other external boundaries in service tests.
