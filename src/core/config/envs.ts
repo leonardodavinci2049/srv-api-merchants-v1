@@ -56,6 +56,18 @@ const envsSchema = z.object({
   DB_MYSQL_USER: z.string().min(1),
   DB_MYSQL_PASSWORD: z.string().min(1),
   DB_MYSQL_DATABASE: z.string().min(1),
+  ALIEXPRESS_SERVER_URL: z
+    .string()
+    .url()
+    .refine((url) => url.startsWith('https://'), {
+      message: 'ALIEXPRESS_SERVER_URL must use the HTTPS protocol',
+    }),
+  ALIEXPRESS_APP_KEY: z.string().min(1),
+  ALIEXPRESS_APP_SECRET: z.string().min(1),
+  ALIEXPRESS_SANDBOX_URL: z.string().url(),
+  ALIEXPRESS_SANDBOX_APP_KEY: z.string().min(1),
+  ALIEXPRESS_SANDBOX_APP_SECRET: z.string().min(1),
+  ALIEXPRESS_TRACKING_ID: z.string().min(1),
 });
 
 const envData = {
@@ -89,4 +101,11 @@ export const envs = {
   DB_MYSQL_USER: envVars.DB_MYSQL_USER,
   DB_MYSQL_PASSWORD: envVars.DB_MYSQL_PASSWORD,
   DB_MYSQL_DATABASE: envVars.DB_MYSQL_DATABASE,
+  ALIEXPRESS_SERVER_URL: envVars.ALIEXPRESS_SERVER_URL,
+  ALIEXPRESS_APP_KEY: envVars.ALIEXPRESS_APP_KEY,
+  ALIEXPRESS_APP_SECRET: envVars.ALIEXPRESS_APP_SECRET,
+  ALIEXPRESS_SANDBOX_URL: envVars.ALIEXPRESS_SANDBOX_URL,
+  ALIEXPRESS_SANDBOX_APP_KEY: envVars.ALIEXPRESS_SANDBOX_APP_KEY,
+  ALIEXPRESS_SANDBOX_APP_SECRET: envVars.ALIEXPRESS_SANDBOX_APP_SECRET,
+  ALIEXPRESS_TRACKING_ID: envVars.ALIEXPRESS_TRACKING_ID,
 };

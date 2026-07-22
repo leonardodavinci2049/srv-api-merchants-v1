@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AliExpressOperationModule } from 'src/aliexpress-operation/aliexpress-operation.module';
 import { DbOperationModule } from 'src/db.operation/db.operation.module';
 import { ShopeeOperationModule } from 'src/shopee-operation/shopee-operation.module';
 import { AppController } from './app.controller';
@@ -27,6 +28,7 @@ import { AppService } from './app.service';
       },
     ]),
     ShopeeOperationModule,
+    AliExpressOperationModule,
   ],
   controllers: [AppController],
   providers: [
